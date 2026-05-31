@@ -47,7 +47,7 @@ class StoryController extends Controller
             ]);
             StoryMedia::query()->create([
                 'story_id' => $story->id,
-                'path' => $path,
+                'path' => 'storage/' . $path,
                 'url' => Storage::disk('public')->url($path),
             ]);
 
