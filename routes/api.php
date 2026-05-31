@@ -26,13 +26,13 @@ Route::prefix('otp')->group(function () {
 });
 
 Route::get('profiles/discover', [ProfileController::class, 'discover']);
+Route::get('profiles/{user}', [ProfileController::class, 'show']);
 Route::get('stories', [StoryController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [ProfileController::class, 'me']);
     Route::patch('me', [ProfileController::class, 'update']);
     Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
-    Route::get('profiles/{user}', [ProfileController::class, 'show']);
     Route::post('me/profile-photo', [ProfileController::class, 'uploadPhoto']);
 
     Route::get('me/stories', [StoryController::class, 'mine']);
