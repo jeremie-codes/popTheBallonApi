@@ -106,7 +106,7 @@ class ProfileController extends Controller
         $photo = ProfilePhoto::query()->create([
             'user_id' => $request->user()->id,
             'path' => $path,
-            'url' => url($path),
+            'url' => asset($path),
             'position' => ProfilePhoto::query()->where('user_id', $request->user()->id)->count(),
             'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user()->id)->exists(),
         ]);
