@@ -59,14 +59,14 @@ class StoryController extends Controller
 
     private function storyPayload(Story $story, bool $isMine = false): array
     {
-        $avatar = optional($story->user->photos->first())->url;
+        $avatar = optional($story->user->photos->first())->path ?? null;
 
         return [
             'id' => (string) $story->id,
             'name' => $isMine ? 'Ta story' : $story->user->displayName(),
-            'avatar' => $avatar ?? optional($story->media->first())->url ?? '',
+            'avatar' => $avatar ?? optional($story->media->first())->path ?? '',
             'profileId' => (string) $story->user_id,
-            'images' => $story->media->map(fn (StoryMedia $media) => ['name' => $media->url])->values(),
+            'images' => $story->media->map(fn (StoryMedia $media) => ['name' => $media->path])->values(),
             'isMine' => $isMine,
         ];
     }

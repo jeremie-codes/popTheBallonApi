@@ -109,7 +109,7 @@ class ConversationController extends Controller
             'id' => (string) $conversation->id,
             'profileId' => (string) $other->id,
             'name' => $other->displayName(),
-            'avatar' => optional($other->photos->first())->url ?? '',
+            'avatar' => optional($other->photos->first())->path ?? '',
             'message' => $last?->body ?? '',
             'time' => optional($last?->created_at ?? $conversation->created_at)->diffForHumans(),
             'unread' => $unread,
@@ -143,8 +143,8 @@ class ConversationController extends Controller
             'intention' => $profile->intention ?? '',
             'verified' => (bool) $profile->verified,
             'distance' => '0 km',
-            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->url])->values(),
-            'avatar' => optional($profile->photos->first())->url,
+            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->path])->values(),
+            'avatar' => optional($profile->photos->first())->path ?? null,
             'interests' => $profile->interests->pluck('name')->values(),
         ];
     }

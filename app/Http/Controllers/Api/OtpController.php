@@ -86,7 +86,7 @@ class OtpController extends Controller
                     'country' => $user->country,
                     'intention' => $user->intention,
                     'bio' => $user->bio,
-                    'avatar' => optional($user->photos->first())->url,
+                    'avatar' => optional($user->photos->first())->path ?? null,
                     'age' => $user->age(),
                     'interests' => $user->interests->pluck('name')->values(),
                 ],
