@@ -111,7 +111,7 @@ class ProfileController extends Controller
             'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user()->id)->exists(),
         ]);
 
-        return response()->json(['url' => $photo->url], 201);
+        return response()->json(['url' => $photo->path], 201);
     }
 
     private function profilePayload(User $profile, ?User $viewer = null): array
@@ -134,8 +134,8 @@ class ProfileController extends Controller
             'intention' => $profile->intention ?? '',
             'verified' => (bool) $profile->verified,
             'distance' => '0 km',
-            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->url])->values(),
-            'avatar' => optional($profile->photos->first())->url,
+            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->path])->values(),
+            'avatar' => optional($profile->photos->first())->path ?? null,
             'interests' => $profile->interests->pluck('name')->values(),
             'likedYou' => $likedYou,
             'lastSeen' => optional($profile->last_seen_at)->diffForHumans(),
@@ -157,7 +157,7 @@ class ProfileController extends Controller
             'country' => $user->country,
             'intention' => $user->intention,
             'bio' => $user->bio,
-            'avatar' => optional($user->photos->first())->url,
+            'avatar' => optional($user->photos->first())->path ?? null,
             'age' => $user->age(),
             'interests' => $user->interests->pluck('name')->values(),
         ];
