@@ -174,7 +174,11 @@ class AuthController extends Controller
                 'intention' => $user->intention,
                 'bio' => $user->bio,
                 'avatar' => optional($user->photos->first())->path,
-                'pictures' => $user->photos->map(fn ($photo) => ['id' => (string) $photo->id, 'name' => $photo->path])->values(),
+                'pictures' => $user->photos->map(fn ($photo) => [
+                    'id' => (string) $photo->id,
+                    'name' => $photo->path,
+                    'isPrimary' => (bool) $photo->is_primary,
+                ])->values(),
                 'age' => $user->age(),
                 'interests' => $user->interests->pluck('name')->values(),
             ],

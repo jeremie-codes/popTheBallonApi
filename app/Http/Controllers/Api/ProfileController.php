@@ -9,6 +9,7 @@ use App\Models\ProfilePhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -127,6 +128,31 @@ class ProfileController extends Controller
         return response()->json(['url' => $photo->path], 201);
     }
 
+    public function deletePhoto(Request $request, ProfilePhoto $photo)
+    {
+        $user = $request->user('sanctum');
+
+        if ($photo->user_id !== $user->id) {
+            return response()->json(['message' => 'Photo introuvable.'], 404);
+        }
+
+        $storagePath = str_replace('storage/', '', $photo->path);
+
+        if (Storage::disk('public')->exists($storagePath)) {
+            Storage::disk('public')->delete($storagePath);
+        }
+
+        $photo->delete();
+
+        $remainingPhotos = $user->photos()->orderBy('position')->get();
+
+        if ($remainingPhotos->count() && ! $remainingPhotos->where('is_primary', true)->count()) {
+            $remainingPhotos->first()->update(['is_primary' => true]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     private function profilePayload(User $profile, ?User $viewer = null): array
     {
 
@@ -181,7 +207,11 @@ class ProfileController extends Controller
             'intention' => $profile->intention ?? '',
             'verified' => (bool) $profile->verified,
             'distance' => '0 km',
-            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->path])->values(),
+            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => [
+                'id' => (string) $photo->id,
+                'name' => $photo->path,
+                'isPrimary' => (bool) $photo->is_primary,
+            ])->values(),
             'avatar' => optional($profile->photos->first())->path ?? null,
             'interests' => $profile->interests->pluck('name')->values(),
             'liked' => $liked,

@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('me/stories', [StoryController::class, 'store']);
     Route::delete('me/stories/{storyMedia}', [StoryController::class, 'destroy']);
     Route::post('me/profile-photo', [ProfileController::class, 'uploadPhoto']);
+    Route::delete('me/profile-photo/{photo}', [ProfileController::class, 'deletePhoto']);
 
     Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
 
