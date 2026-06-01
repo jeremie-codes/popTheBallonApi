@@ -6,33 +6,32 @@ use App\Http\Controllers\Controller;
 use App\Models\Story;
 use App\Models\StoryMedia;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class StoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         return response()->json(
-            Story::query()
-                ->with(['user.photos', 'media'])
-                ->where(function ($query) {
-                    $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
-                })
-                ->latest()
-                ->get()
-                ->map(fn (Story $story) => $this->storyPayload($story))
+            $this->activeStories()
+                ->groupBy('user_id')
+                ->map(fn (Collection $stories) => $this->storyPayload(
+                    $stories,
+                    $request->user('sanctum')?->id === $stories->first()->user_id,
+                ))
+                ->values()
         );
     }
 
     public function mine(Request $request)
     {
         return response()->json(
-            Story::query()
-                ->with(['user.photos', 'media'])
+            $this->activeStories()
                 ->where('user_id', $request->user()->id)
-                ->latest()
-                ->get()
-                ->map(fn (Story $story) => $this->storyPayload($story, true))
+                ->groupBy('user_id')
+                ->map(fn (Collection $stories) => $this->storyPayload($stories, true))
+                ->values()
         );
     }
 
@@ -47,26 +46,43 @@ class StoryController extends Controller
             ]);
             StoryMedia::query()->create([
                 'story_id' => $story->id,
-                'path' => 'storage/' . $path,
+                'path' => 'storage/'.$path,
                 'url' => Storage::disk('public')->url($path),
             ]);
 
-            return response()->json($this->storyPayload($story->load(['user.photos', 'media']), true), 201);
+            return response()->json(
+                $this->storyPayload(collect([$story->load(['user.photos', 'media'])]), true),
+                201,
+            );
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
 
-    private function storyPayload(Story $story, bool $isMine = false): array
+    private function activeStories(): Collection
     {
-        $avatar = optional($story->user->photos->first())->path ?? null;
+        return Story::query()
+            ->with(['user.photos', 'media'])
+            ->where(function ($query) {
+                $query->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })
+            ->latest()
+            ->get();
+    }
+
+    private function storyPayload(Collection $stories, bool $isMine = false): array
+    {
+        /** @var Story $latestStory */
+        $latestStory = $stories->first();
+        $media = $stories->flatMap(fn (Story $story) => $story->media);
+        $avatar = optional($latestStory->user->photos->first())->path ?? null;
 
         return [
-            'id' => (string) $story->id,
-            'name' => $isMine ? 'Ta story' : $story->user->displayName(),
-            'avatar' => $avatar ?? optional($story->media->first())->path ?? '',
-            'profileId' => (string) $story->user_id,
-            'images' => $story->media->map(fn (StoryMedia $media) => ['name' => $media->path])->values(),
+            'id' => (string) $latestStory->user_id,
+            'name' => $isMine ? 'Ta story' : $latestStory->user->displayName(),
+            'avatar' => $avatar ?? optional($media->first())->path ?? '',
+            'profileId' => (string) $latestStory->user_id,
+            'images' => $media->map(fn (StoryMedia $storyMedia) => ['name' => $storyMedia->path])->values(),
             'isMine' => $isMine,
         ];
     }

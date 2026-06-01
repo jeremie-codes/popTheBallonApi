@@ -1,7 +1,9 @@
 <?php
 
-use App\Models\User;
 use App\Models\Conversation;
+use App\Models\Story;
+use App\Models\StoryMedia;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 
@@ -82,4 +84,34 @@ test('authenticated user can send a message in their conversation', function () 
 
     expect($conversation->messages()->count())->toBe(1)
         ->and($conversation->refresh()->last_message_at)->not->toBeNull();
+});
+
+test('stories are grouped by user', function () {
+    $user = User::factory()->create();
+    $firstStory = Story::query()->create([
+        'user_id' => $user->id,
+        'expires_at' => now()->addDay(),
+    ]);
+    $secondStory = Story::query()->create([
+        'user_id' => $user->id,
+        'expires_at' => now()->addDay(),
+    ]);
+
+    StoryMedia::query()->create([
+        'story_id' => $firstStory->id,
+        'path' => 'storage/stories/first.jpg',
+        'url' => '/storage/stories/first.jpg',
+    ]);
+    StoryMedia::query()->create([
+        'story_id' => $secondStory->id,
+        'path' => 'storage/stories/second.jpg',
+        'url' => '/storage/stories/second.jpg',
+    ]);
+
+    $this
+        ->getJson('/api/stories')
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.profileId', (string) $user->id)
+        ->assertJsonCount(2, '0.images');
 });
