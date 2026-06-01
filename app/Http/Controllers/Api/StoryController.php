@@ -59,6 +59,31 @@ class StoryController extends Controller
         }
     }
 
+    public function destroy(Request $request, StoryMedia $storyMedia)
+    {
+        if ($storyMedia->story->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Action non autorisee.'], 403);
+        }
+
+        try {
+            if ($storyMedia->path) {
+                $storagePath = preg_replace('#^storage/#', '', $storyMedia->path);
+                Storage::disk('public')->delete($storagePath);
+            }
+
+            $story = $storyMedia->story;
+            $storyMedia->delete();
+
+            if ($story->media()->count() === 0) {
+                $story->delete();
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Impossible de supprimer le media de story.', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     private function activeStories(): Collection
     {
         return Story::query()
@@ -82,7 +107,7 @@ class StoryController extends Controller
             'name' => $isMine ? 'Ta story' : $latestStory->user->displayName(),
             'avatar' => $avatar ?? optional($media->first())->path ?? '',
             'profileId' => (string) $latestStory->user_id,
-            'images' => $media->map(fn (StoryMedia $storyMedia) => ['name' => $storyMedia->path])->values(),
+            'images' => $media->map(fn (StoryMedia $storyMedia) => ['id' => (string) $storyMedia->id, 'name' => $storyMedia->path])->values(),
             'isMine' => $isMine,
         ];
     }

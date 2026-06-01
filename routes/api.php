@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('me', [ProfileController::class, 'update']);
     Route::get('me/stories', [StoryController::class, 'mine']);
     Route::post('me/stories', [StoryController::class, 'store']);
+    Route::delete('me/stories/{storyMedia}', [StoryController::class, 'destroy']);
     Route::post('me/profile-photo', [ProfileController::class, 'uploadPhoto']);
 
     Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
