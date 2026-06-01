@@ -45,13 +45,34 @@ class InteractionController extends Controller
             'type' => $type,
         ]);
 
-        AppNotification::query()->create([
-            'user_id' => $targetId,
-            'title' => $type === 'like' ? 'Nouveau like' : 'Pop recu',
-            'message' => $actor->displayName().' a interagi avec ton profil.',
-            'kind' => 'like',
-            'profile_id' => $actor->id,
-        ]);
+        // Vérifier si la cible a déjà liké/popé l'acteur (demande de match antérieure)
+        $targetHasLikedActor = ProfileAction::query()
+            ->where('actor_id', $targetId)
+            ->where('target_id', $actor->id)
+            ->whereIn('type', ['like', 'pop'])
+            ->exists();
+
+        if ($type === 'like') {
+            if ($targetHasLikedActor) {
+                // C'est une acceptation d'une demande de match antérieure
+                AppNotification::query()->create([
+                    'user_id' => $targetId,
+                    'title' => 'Match accepté',
+                    'message' => $actor->displayName().' a accepté votre match.',
+                    'kind' => 'match',
+                    'profile_id' => $actor->id,
+                ]);
+            } else {
+                // C'est une nouvelle demande de match
+                AppNotification::query()->create([
+                    'user_id' => $targetId,
+                    'title' => 'Nouvelle demande de match',
+                    'message' => $actor->displayName().' a interagi avec ton profil.',
+                    'kind' => 'like',
+                    'profile_id' => $actor->id,
+                ]);
+            }
+        }
 
         $matched = ProfileAction::query()
             ->where('actor_id', $targetId)
@@ -75,7 +96,7 @@ class InteractionController extends Controller
         return response()->json([
             'success' => true,
             'matched' => $matched,
-            'message' => $matched ? 'Match confirme.' : 'Action enregistree.',
+            'message' => $matched ? ($targetHasLikedActor && $type === 'like' ? 'Match accepté.' : 'Match confirme.') : 'Action enregistree.',
         ]);
     }
 }

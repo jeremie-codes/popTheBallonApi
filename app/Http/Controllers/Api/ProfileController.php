@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\MatchModel;
 use App\Models\ProfileAction;
 use App\Models\ProfilePhoto;
 use App\Models\User;
@@ -116,6 +117,15 @@ class ProfileController extends Controller
 
     private function profilePayload(User $profile, ?User $viewer = null): array
     {
+
+        $liked = $viewer
+            ? ProfileAction::query()
+                ->where('actor_id', $viewer->id)
+                ->where('target_id', $profile->id)
+                ->where('type', 'like')
+                ->exists()
+            : false;
+
         $likedYou = $viewer
             ? ProfileAction::query()
                 ->where('actor_id', $profile->id)
@@ -123,6 +133,25 @@ class ProfileController extends Controller
                 ->where('type', 'like')
                 ->exists()
             : false;
+
+        $poped = $viewer
+            ? ProfileAction::query()
+                ->where('actor_id', $viewer->id ?? 0)
+                ->where('target_id', $profile->id)
+                ->where('type', 'pop')
+                ->exists()
+            : false;
+
+        $matched = MatchModel::query()
+            ->where(function ($query) use ($viewer, $profile) {
+                $query->where('user_one_id', $viewer->id ?? 0)
+                    ->where('user_two_id', $profile->id);
+            })
+            ->orWhere(function ($query) use ($viewer, $profile) {
+                $query->where('user_one_id', $profile->id)
+                    ->where('user_two_id', $viewer->id ?? 0);
+            })
+            ->exists() ?? $liked && $likedYou ?? false;
 
         return [
             'id' => (string) $profile->id,
@@ -137,7 +166,10 @@ class ProfileController extends Controller
             'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => ['name' => $photo->path])->values(),
             'avatar' => optional($profile->photos->first())->path ?? null,
             'interests' => $profile->interests->pluck('name')->values(),
+            'liked' => $liked,
             'likedYou' => $likedYou,
+            'poped' => $poped,
+            'matched' => $matched,
             'lastSeen' => optional($profile->last_seen_at)->diffForHumans(),
         ];
     }
