@@ -9,7 +9,6 @@ use App\Models\ProfilePhoto;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ProfileController extends Controller
 {
@@ -39,7 +38,7 @@ class ProfileController extends Controller
 
     public function me(Request $request)
     {
-        return response()->json($this->userPayload($request->user()->load(['photos', 'interests'])));
+        return response()->json($this->userPayload($request->user('sanctum')->load(['photos', 'interests'])));
     }
 
     public function update(Request $request)
@@ -58,7 +57,7 @@ class ProfileController extends Controller
         ]);
 
         $user = DB::transaction(function () use ($data, $request) {
-            $user = $request->user();
+            $user = $request->user('sanctum');
             $interests = $data['interests'] ?? null;
             unset($data['interests']);
 
@@ -80,7 +79,7 @@ class ProfileController extends Controller
 
     public function likedMe(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user('sanctum');
         $ids = ProfileAction::query()
             ->where('target_id', $user->id)
             ->where('type', 'like')
@@ -94,7 +93,7 @@ class ProfileController extends Controller
 
     public function show(Request $request, User $user)
     {
-        return response()->json($this->profilePayload($user->load(['photos', 'interests']), $request->user()));
+        return response()->json($this->profilePayload($user->load(['photos', 'interests']), $request->user('sanctum')));
     }
 
     public function uploadPhoto(Request $request)
@@ -105,11 +104,11 @@ class ProfileController extends Controller
 
         $path = $data['photo']->store('profile-photos', 'public');
         $photo = ProfilePhoto::query()->create([
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user('sanctum')->id,
             'path' => 'storage/' . $path,
             'url' => asset($path),
-            'position' => ProfilePhoto::query()->where('user_id', $request->user()->id)->count(),
-            'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user()->id)->exists(),
+            'position' => ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->count(),
+            'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->exists(),
         ]);
 
         return response()->json(['url' => $photo->path], 201);
