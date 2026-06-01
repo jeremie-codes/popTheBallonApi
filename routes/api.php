@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
 
     Route::post('likes', [InteractionController::class, 'like']);
+    Route::post('declines-matches', [InteractionController::class, 'decline']);
     Route::post('pops', [InteractionController::class, 'pop']);
 
     Route::get('matches', [ConversationController::class, 'matches']);
@@ -49,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
 
     Route::get('message-bundles', [MessageBundleController::class, 'index']);
+    Route::post('message-bundles/{messageBundle}/purchase', [MessageBundleController::class, 'purchaseBundle']);
     Route::post('message-bundle-requests', [MessageBundleController::class, 'requestBundle']);
 
     Route::get('marketplace-items', [MarketplaceController::class, 'index']);

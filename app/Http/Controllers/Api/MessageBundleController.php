@@ -59,6 +59,38 @@ class MessageBundleController extends Controller
         }
     }
 
+    public function purchaseBundle(MessageBundle $MessageBundle, Request $request)
+    {
+
+         try {
+            $data = $request->validate([
+                'profile_id' => ['nullable', 'exists:users,id'],
+            ]);
+
+            $user = $request->user('sanctum');
+
+            if (!$MessageBundle) {
+                return response()->json(['message' => 'Forfait introuvable'], 404);
+            }
+
+            // Logique d'achat du forfait pour l'utilisateur ciblé (à implémenter selon votre logique métier)
+            // si profile_id est fourni, c'est une demande d'achat pour un autre utilisateur, sinon c'est pour soi-même
+
+            AppNotification::query()->create([
+                'user_id' => $data['profile_id'] ?? $user->id,
+                'title' => 'Demande de forfait',
+                'message' => $data['profile_id'] ? $user->displayName().' vous a acheté un forfait messages '. $MessageBundle->title .' pour discuter avec lui.'
+                    : 'Vous avez acheté un forfait messages '. $MessageBundle->title .' pour discuter avec vos matchs.',
+                'kind' => 'bundle_purchase',
+                'profile_id' => $user->id,
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Demande de forfait envoyee.'], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     private function currencySymbol(string $currency): string
     {
         return strtoupper($currency) === 'USD' ? '$' : $currency;

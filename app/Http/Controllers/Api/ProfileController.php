@@ -118,39 +118,45 @@ class ProfileController extends Controller
     {
 
         $liked = $viewer
-            ? ProfileAction::query()
-                ->where('actor_id', $viewer->id)
+            ? ProfileAction::where('actor_id', $viewer->id)
                 ->where('target_id', $profile->id)
                 ->where('type', 'like')
                 ->exists()
             : false;
 
         $likedYou = $viewer
-            ? ProfileAction::query()
-                ->where('actor_id', $profile->id)
+            ? ProfileAction::where('actor_id', $profile->id)
                 ->where('target_id', $viewer->id)
                 ->where('type', 'like')
                 ->exists()
             : false;
 
         $poped = $viewer
-            ? ProfileAction::query()
-                ->where('actor_id', $viewer->id ?? 0)
+            ? ProfileAction::where('actor_id', $viewer->id)
                 ->where('target_id', $profile->id)
                 ->where('type', 'pop')
                 ->exists()
             : false;
 
-        $matched = MatchModel::query()
-            ->where(function ($query) use ($viewer, $profile) {
-                $query->where('user_one_id', $viewer->id ?? 0)
-                    ->where('user_two_id', $profile->id);
-            })
-            ->orWhere(function ($query) use ($viewer, $profile) {
-                $query->where('user_one_id', $profile->id)
-                    ->where('user_two_id', $viewer->id ?? 0);
-            })
-            ->exists() ?? $liked && $likedYou ?? false;
+        $declined = $viewer
+            ? ProfileAction::where('actor_id', $viewer->id)
+                ->where('target_id', $profile->id)
+                ->where('type', 'decline')
+                ->exists()
+            : false;
+
+        $matched = $viewer
+            ? MatchModel::query()
+                ->where(function ($query) use ($viewer, $profile) {
+                    $query->where('user_one_id', $viewer->id)
+                        ->where('user_two_id', $profile->id);
+                })
+                ->orWhere(function ($query) use ($viewer, $profile) {
+                    $query->where('user_one_id', $profile->id)
+                        ->where('user_two_id', $viewer->id);
+                })
+                ->exists()
+            : false;
 
         return [
             'id' => (string) $profile->id,
@@ -167,6 +173,7 @@ class ProfileController extends Controller
             'interests' => $profile->interests->pluck('name')->values(),
             'liked' => $liked,
             'likedYou' => $likedYou,
+            'declined' => $declined,
             'poped' => $poped,
             'matched' => $matched,
             'lastSeen' => optional($profile->last_seen_at)->diffForHumans(),

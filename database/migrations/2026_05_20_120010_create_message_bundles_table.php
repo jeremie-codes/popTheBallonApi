@@ -24,7 +24,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('requester_id')->constrained('users')->cascadeOnDelete();
             $table->foreignId('requested_user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('status')->default('pending');
+            $table->enum('status', ['pending', 'read'])->default('pending');
             $table->timestamps();
         });
     }

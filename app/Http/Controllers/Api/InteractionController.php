@@ -29,74 +29,132 @@ class InteractionController extends Controller
         }
     }
 
+    public function decline(Request $request)
+    {
+        try {
+            return $this->storeAction($request, 'decline');
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     private function storeAction(Request $request, string $type)
     {
-        $data = $request->validate(['profile_id' => ['required', 'exists:users,id']]);
-        $actor = $request->user();
+        $data = $request->validate([
+            'profile_id' => ['required', 'exists:users,id'],
+        ]);
+
+        $actor = $request->user('sanctum');
         $targetId = (int) $data['profile_id'];
 
         if ($actor->id === $targetId) {
-            return response()->json(['message' => 'Action impossible sur votre propre profil.'], 422);
+            return response()->json([
+                'message' => 'Action impossible sur votre propre profil.'
+            ], 422);
         }
 
-        ProfileAction::query()->firstOrCreate([
-            'actor_id' => $actor->id,
-            'target_id' => $targetId,
-            'type' => $type,
-        ]);
+        // Enregistre ou met à jour l'action
+        ProfileAction::query()->updateOrCreate(
+            [
+                'actor_id' => $actor->id,
+                'target_id' => $targetId,
+            ],
+            [
+                'type' => $type,
+            ]
+        );
 
-        // Vérifier si la cible a déjà liké/popé l'acteur (demande de match antérieure)
-        $targetHasLikedActor = ProfileAction::query()
+        // Vérifie si la cible a liké l'acteur
+        $targetLikedActor = ProfileAction::query()
             ->where('actor_id', $targetId)
             ->where('target_id', $actor->id)
-            ->whereIn('type', ['like', 'pop'])
+            ->where('type', 'like')
             ->exists();
 
+        // Notification
         if ($type === 'like') {
-            if ($targetHasLikedActor) {
-                // C'est une acceptation d'une demande de match antérieure
+
+            if ($targetLikedActor) {
+
                 AppNotification::query()->create([
                     'user_id' => $targetId,
-                    'title' => 'Match accepté',
-                    'message' => $actor->displayName().' a accepté votre match.',
+                    'title' => 'Demande de match confirmé !',
+                    'message' => $actor->displayName() . ' a accepté votre demande de match.',
                     'kind' => 'match',
                     'profile_id' => $actor->id,
                 ]);
             } else {
-                // C'est une nouvelle demande de match
+
                 AppNotification::query()->create([
                     'user_id' => $targetId,
                     'title' => 'Nouvelle demande de match',
-                    'message' => $actor->displayName().' a interagi avec ton profil.',
+                    'message' => $actor->displayName() . ' aime votre profil, cliquez pour voir.',
                     'kind' => 'like',
                     'profile_id' => $actor->id,
                 ]);
             }
         }
 
-        $matched = ProfileAction::query()
-            ->where('actor_id', $targetId)
-            ->where('target_id', $actor->id)
-            ->whereIn('type', ['like', 'pop'])
+        if ($type === 'decline') {
+
+            AppNotification::query()->create([
+                'user_id' => $targetId,
+                'title' => 'Demande refusée',
+                'message' => $actor->displayName() . ' a refusé votre demande de match.',
+                'kind' => 'decline',
+                'profile_id' => $actor->id,
+            ]);
+        }
+
+        // Match uniquement si les deux ont liké
+        $actorLikedTarget = ProfileAction::query()
+            ->where('actor_id', $actor->id)
+            ->where('target_id', $targetId)
+            ->where('type', 'like')
             ->exists();
 
-        if ($matched) {
-            [$one, $two] = collect([$actor->id, $targetId])->sort()->values()->all();
-            $match = MatchModel::query()->firstOrCreate([
-                'user_one_id' => $one,
-                'user_two_id' => $two,
-            ], ['matched_at' => now()]);
+        $targetLikedActor = ProfileAction::query()
+            ->where('actor_id', $targetId)
+            ->where('target_id', $actor->id)
+            ->where('type', 'like')
+            ->exists();
 
-            Conversation::query()->firstOrCreate([
-                'user_one_id' => $one,
-                'user_two_id' => $two,
-            ], ['match_id' => $match->id]);
+        $matched = $actorLikedTarget && $targetLikedActor;
+
+        if ($matched) {
+
+            [$one, $two] = collect([
+                $actor->id,
+                $targetId
+            ])->sort()->values()->all();
+
+            $match = MatchModel::query()->firstOrCreate(
+                [
+                    'user_one_id' => $one,
+                    'user_two_id' => $two,
+                ],
+                [
+                    'matched_at' => now(),
+                ]
+            );
+
+            Conversation::query()->firstOrCreate(
+                [
+                    'user_one_id' => $one,
+                    'user_two_id' => $two,
+                ],
+                [
+                    'match_id' => $match->id,
+                ]
+            );
         }
 
         return response()->json([
             'success' => true,
             'matched' => $matched,
-            'message' => $matched ? ($targetHasLikedActor && $type === 'like' ? 'Match accepté.' : 'Match confirme.') : 'Action enregistree.',
+            'message' => $matched
+                ? 'Match confirmé.'
+                : 'Action enregistrée.',
         ]);
     }
 }
