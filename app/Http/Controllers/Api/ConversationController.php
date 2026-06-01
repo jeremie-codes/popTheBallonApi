@@ -94,6 +94,7 @@ class ConversationController extends Controller
             'text' => $message->body,
             'time' => $message->created_at->format('H:i'),
             'mine' => true,
+            'read' => false,
         ], 201);
     }
 
@@ -139,6 +140,7 @@ class ConversationController extends Controller
                     'text' => $message->body,
                     'time' => $message->created_at->format('H:i'),
                     'mine' => $message->sender_id === $viewer->id,
+                    'read' => $message->read_at !== null,
                 ])
                 ->values();
         }
