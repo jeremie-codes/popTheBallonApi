@@ -55,6 +55,7 @@ class AuthController extends Controller
             UserDevice::updateOrCreate(
             ['expo_token' => $request->token],
             [
+                'platform' => $request->platform,
                 'user_id' => $user->id,
                 'last_used_at' => now(),
             ]
