@@ -80,14 +80,27 @@ class ProfileController extends Controller
     public function likedMe(Request $request)
     {
         $user = $request->user('sanctum');
-        $ids = ProfileAction::query()
+
+        $likedIds = ProfileAction::query()
             ->where('target_id', $user->id)
             ->where('type', 'like')
             ->pluck('actor_id');
 
+        $handledIds = ProfileAction::query()
+            ->where('actor_id', $user->id)
+            ->whereIn('type', ['like', 'pop', 'decline'])
+            ->pluck('target_id');
+
+        $profiles = User::query()
+            ->with(['photos', 'interests'])
+            ->whereIn('id', $likedIds)
+            ->whereNotIn('id', $handledIds)
+            ->get();
+
         return response()->json(
-            User::query()->with(['photos', 'interests'])->whereIn('id', $ids)->get()
-                ->map(fn (User $profile) => $this->profilePayload($profile, $user))
+            $profiles->map(
+                fn (User $profile) => $this->profilePayload($profile, $user)
+            )
         );
     }
 
