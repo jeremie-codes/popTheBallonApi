@@ -97,6 +97,22 @@ class ConversationController extends Controller
         ], 201);
     }
 
+    public function markAsRead(Request $request, Conversation $conversation)
+    {
+        $user = $request->user();
+
+        if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
+            return response()->json(['message' => 'Conversation introuvable.'], 404);
+        }
+
+        $conversation->messages()
+            ->where('sender_id', '<>', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['success' => true]);
+    }
+
     private function conversationPayload(Conversation $conversation, User $viewer, bool $withMessages = false): array
     {
         $other = $conversation->user_one_id === $viewer->id ? $conversation->userTwo : $conversation->userOne;
