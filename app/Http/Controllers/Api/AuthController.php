@@ -41,8 +41,9 @@ class AuthController extends Controller
     public function savePushToken(Request $request)
     {
         try {
-            $data = $request->validate([
+            $request->validate([
                 'token' => ['required', 'string'],
+                'platform' => ['required', 'string'],
             ]);
 
             $user = $request->user('sanctum');
@@ -186,7 +187,7 @@ class AuthController extends Controller
         return [
             'code' => 'auth-ok',
             'token' => $token->plainTextToken,
-            'expoToken' => $user->expo_token,
+            'expoToken' => $user->devices()->latest('last_used_at')->value('expo_token') ?? null,
             'expire_in' => 60 * 60 * 24 * 30,
             'merchant' => '',
             'shop' => '',

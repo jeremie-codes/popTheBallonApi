@@ -41,6 +41,11 @@ class User extends Authenticatable
         return $this->hasMany(UserInterest::class);
     }
 
+    public function devices()
+    {
+        return $this->hasMany(UserDevice::class);
+    }
+
     public function photos()
     {
         return $this->hasMany(ProfilePhoto::class)->orderBy('position');
