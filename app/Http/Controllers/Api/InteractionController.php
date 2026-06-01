@@ -7,6 +7,8 @@ use App\Models\AppNotification;
 use App\Models\Conversation;
 use App\Models\MatchModel;
 use App\Models\ProfileAction;
+use App\Models\User;
+use App\Services\ExpoNotificationService;
 use Illuminate\Http\Request;
 
 class InteractionController extends Controller
@@ -44,6 +46,8 @@ class InteractionController extends Controller
             'profile_id' => ['required', 'exists:users,id'],
         ]);
 
+        $expo = app(ExpoNotificationService::class);
+
         $actor = $request->user('sanctum');
         $targetId = (int) $data['profile_id'];
 
@@ -52,6 +56,8 @@ class InteractionController extends Controller
                 'message' => 'Action impossible sur votre propre profil.'
             ], 422);
         }
+
+        $target = User::query()->with('devices')->find($targetId);
 
         // Enregistre ou met à jour l'action
         ProfileAction::query()->updateOrCreate(
@@ -78,11 +84,24 @@ class InteractionController extends Controller
 
                 AppNotification::query()->create([
                     'user_id' => $targetId,
-                    'title' => 'Demande de match confirmé !',
+                    'title' => '❤️ Demande de match confirmé !',
                     'message' => $actor->displayName() . ' a accepté votre demande de match.',
                     'kind' => 'match',
                     'profile_id' => $actor->id,
                 ]);
+
+                foreach ($target->devices as $device) {
+                    $expo->send(
+                        $device->expo_token,
+                        '❤️ Demande de match confirmé',
+                        $actor->displayName() . ' a accepté votre demande de match.',
+                        [
+                            'type' => 'match',
+                            'user_id' => $actor->id,
+                        ]
+                    );
+
+                }
             } else {
 
                 AppNotification::query()->create([
@@ -92,18 +111,45 @@ class InteractionController extends Controller
                     'kind' => 'like',
                     'profile_id' => $actor->id,
                 ]);
+
+                foreach ($target->devices as $device) {
+                    $expo->send(
+                        $device->expo_token,
+                        'Nouvelle demande de match',
+                        $actor->displayName() . ' aime votre profil, cliquez pour voir.',
+                        [
+                            'type' => 'like',
+                            'user_id' => $actor->id,
+                        ]
+                    );
+
+                }
             }
+
         }
 
         if ($type === 'decline') {
 
             AppNotification::query()->create([
                 'user_id' => $targetId,
-                'title' => 'Demande refusée',
+                'title' => '❤️ Demande refusée',
                 'message' => $actor->displayName() . ' a refusé votre demande de match.',
                 'kind' => 'decline',
                 'profile_id' => $actor->id,
             ]);
+
+            foreach ($target->devices as $device) {
+                $expo->send(
+                    $device->expo_token,
+                    'Demande match refusée',
+                    $actor->displayName() . ' a refusé votre demande de match.',
+                    [
+                        'type' => 'decline',
+                        'user_id' => $actor->id,
+                    ]
+                );
+
+            }
         }
 
         // Match uniquement si les deux ont liké
