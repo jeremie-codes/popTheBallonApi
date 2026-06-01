@@ -37,6 +37,28 @@ class AuthController extends Controller
         }
     }
 
+    public function updateExpoToken(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'token' => ['required', 'string'],
+            ]);
+
+            $user = $request->user('sanctum');
+
+            if (! $user) {
+                return response()->json(['message' => 'Utilisateur non authentifie'], 401);
+            }
+
+            $user->expo_token = $data['token'];
+            $user->save();
+
+            return response()->json(['message' => 'Token de notification mis a jour']);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     public function register(Request $request)
     {
         try {
@@ -155,6 +177,7 @@ class AuthController extends Controller
         return [
             'code' => 'auth-ok',
             'token' => $token->plainTextToken,
+            'expoToken' => $user->expo_token,
             'expire_in' => 60 * 60 * 24 * 30,
             'merchant' => '',
             'shop' => '',
