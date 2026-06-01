@@ -209,6 +209,7 @@ class ProfileController extends Controller
             'intention' => $user->intention,
             'bio' => $user->bio,
             'avatar' => optional($user->photos->first())->path ?? null,
+            'pictures' => $user->photos->map(fn ($photo) => ['id' => (string) $photo->id, 'name' => $photo->path])->values(),
             'age' => $user->age(),
             'interests' => $user->interests->pluck('name')->values(),
         ];
