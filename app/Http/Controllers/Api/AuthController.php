@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\UserDevice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -37,7 +38,7 @@ class AuthController extends Controller
         }
     }
 
-    public function updateExpoToken(Request $request)
+    public function savePushToken(Request $request)
     {
         try {
             $data = $request->validate([
@@ -50,10 +51,18 @@ class AuthController extends Controller
                 return response()->json(['message' => 'Utilisateur non authentifie'], 401);
             }
 
-            $user->expo_token = $data['token'];
-            $user->save();
+            UserDevice::updateOrCreate(
+            ['expo_token' => $request->token],
+            [
+                'user_id' => $user->id,
+                'last_used_at' => now(),
+            ]
+        );
 
-            return response()->json(['message' => 'Token de notification mis a jour']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Token de notification mis a jour'
+        ]);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
