@@ -26,17 +26,16 @@ Route::prefix('otp')->group(function () {
 });
 
 Route::get('profiles/discover', [ProfileController::class, 'discover']);
-Route::get('profiles/{user}', [ProfileController::class, 'show']);
 Route::get('stories', [StoryController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('me', [ProfileController::class, 'me']);
     Route::patch('me', [ProfileController::class, 'update']);
-    Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
-    Route::post('me/profile-photo', [ProfileController::class, 'uploadPhoto']);
-
     Route::get('me/stories', [StoryController::class, 'mine']);
     Route::post('me/stories', [StoryController::class, 'store']);
+    Route::post('me/profile-photo', [ProfileController::class, 'uploadPhoto']);
+
+    Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
 
     Route::post('likes', [InteractionController::class, 'like']);
     Route::post('pops', [InteractionController::class, 'pop']);
@@ -55,3 +54,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('marketplace-items', [MarketplaceController::class, 'index']);
     Route::post('support-requests', [SupportRequestController::class, 'store']);
 });
+
+Route::get('profiles/{user}', [ProfileController::class, 'show']);
