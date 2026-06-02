@@ -79,6 +79,10 @@ class InteractionController extends Controller
         // Notification
         if ($type === 'like') {
 
+            logger()->error('Expo push store action like', [
+                'token' => $target->devices->first()->expo_token
+            ]);
+
             if ($targetLikedActor) {
 
                 AppNotification::query()->create([
