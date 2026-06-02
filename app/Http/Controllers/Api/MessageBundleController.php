@@ -55,6 +55,10 @@ class MessageBundleController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Demande de forfait envoyee.'], 201);
         } catch (\Throwable $e) {
+            logger()->error('MessageBundleController.requestBundle error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -87,6 +91,10 @@ class MessageBundleController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Demande de forfait envoyee.'], 201);
         } catch (\Throwable $e) {
+            logger()->error('MessageBundleController.purchaseBundle error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }

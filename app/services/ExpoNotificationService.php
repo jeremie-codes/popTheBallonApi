@@ -21,10 +21,13 @@ class ExpoNotificationService
     ): void {
 
         try {
-            logger()->error('Expo push send done before post', [
-                'token' => $token,
+            logger()->info('Expo push sending', [
+                'token' => substr($token, 0, 10) . '...',
+                'title' => $title,
+                'data' => $data,
             ]);
-            $this->httpClient->post(
+
+            $response = $this->httpClient->post(
                 'https://exp.host/--/api/v2/push/send',
                 [
                     'json' => [
@@ -38,14 +41,16 @@ class ExpoNotificationService
                 ]
             );
 
-            logger()->error('Expo push send done post', [
-                'token' => $token,
+            logger()->info('Expo push sent successfully', [
+                'token' => substr($token, 0, 10) . '...',
+                'status' => $response->getStatusCode(),
             ]);
         } catch (\Throwable $e) {
             // Ne pas faire échouer la requête principale — journaliser l'erreur
             logger()->error('Expo push send failed', [
-                'token' => $token,
+                'token' => substr($token, 0, 10) . '...',
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
         }
     }

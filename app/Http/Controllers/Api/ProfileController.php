@@ -15,142 +15,204 @@ class ProfileController extends Controller
 {
     public function discover(Request $request)
     {
-        $user = $request->user('sanctum');
+        try {
+            $user = $request->user('sanctum');
 
-        if (! $user) {
+            if (! $user) {
+                $profiles = User::query()
+                    ->with(['photos', 'interests'])
+                    ->latest()
+                    ->get()
+                    ->map(fn (User $profile) => $this->profilePayload($profile, $user));
+
+                return response()->json($profiles);
+            }
+
             $profiles = User::query()
                 ->with(['photos', 'interests'])
+                ->whereKeyNot($user->id)
                 ->latest()
                 ->get()
                 ->map(fn (User $profile) => $this->profilePayload($profile, $user));
 
             return response()->json($profiles);
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.discover error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la récupération des profils.'], 500);
         }
-
-        $profiles = User::query()
-            ->with(['photos', 'interests'])
-            ->whereKeyNot($user->id)
-            ->latest()
-            ->get()
-            ->map(fn (User $profile) => $this->profilePayload($profile, $user));
-
-        return response()->json($profiles);
     }
 
     public function me(Request $request)
     {
-        return response()->json($this->userPayload($request->user('sanctum')->load(['photos', 'interests'])));
+        try {
+            return response()->json($this->userPayload($request->user('sanctum')->load(['photos', 'interests'])));
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.me error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la récupération du profil.'], 500);
+        }
     }
 
     public function update(Request $request)
     {
-        $data = $request->validate([
-            'first_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'last_name' => ['sometimes', 'required', 'string', 'max:255'],
-            'birth_date' => ['sometimes', 'nullable', 'date'],
-            'gender' => ['sometimes', 'nullable', 'string', 'max:50'],
-            'city' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'country' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'intention' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'bio' => ['sometimes', 'nullable', 'string'],
-            'interests' => ['sometimes', 'array'],
-            'interests.*' => ['string', 'max:80'],
-        ]);
+        try {
+            $data = $request->validate([
+                'first_name' => ['sometimes', 'required', 'string', 'max:255'],
+                'last_name' => ['sometimes', 'required', 'string', 'max:255'],
+                'birth_date' => ['sometimes', 'nullable', 'date'],
+                'gender' => ['sometimes', 'nullable', 'string', 'max:50'],
+                'city' => ['sometimes', 'nullable', 'string', 'max:120'],
+                'country' => ['sometimes', 'nullable', 'string', 'max:120'],
+                'intention' => ['sometimes', 'nullable', 'string', 'max:255'],
+                'bio' => ['sometimes', 'nullable', 'string'],
+                'interests' => ['sometimes', 'array'],
+                'interests.*' => ['string', 'max:80'],
+            ]);
 
-        $user = DB::transaction(function () use ($data, $request) {
-            $user = $request->user('sanctum');
-            $interests = $data['interests'] ?? null;
-            unset($data['interests']);
+            $user = DB::transaction(function () use ($data, $request) {
+                $user = $request->user('sanctum');
+                $interests = $data['interests'] ?? null;
+                unset($data['interests']);
 
-            $user->forceFill($data)->save();
+                $user->forceFill($data)->save();
 
-            if (is_array($interests)) {
-                $user->interests()->delete();
+                if (is_array($interests)) {
+                    $user->interests()->delete();
 
-                foreach ($interests as $interest) {
-                    $user->interests()->create(['name' => $interest]);
+                    foreach ($interests as $interest) {
+                        $user->interests()->create(['name' => $interest]);
+                    }
                 }
-            }
 
-            return $user->load(['photos', 'interests']);
-        });
+                return $user->load(['photos', 'interests']);
+            });
 
-        return response()->json($this->userPayload($user));
+            return response()->json($this->userPayload($user));
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.update error', [
+                'user_id' => $request->user('sanctum')?->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la mise à jour du profil.'], 500);
+        }
     }
 
     public function likedMe(Request $request)
     {
-        $user = $request->user('sanctum');
+        try {
+            $user = $request->user('sanctum');
 
-        $likedIds = ProfileAction::query()
-            ->where('target_id', $user->id)
-            ->where('type', 'like')
-            ->pluck('actor_id');
+            $likedIds = ProfileAction::query()
+                ->where('target_id', $user->id)
+                ->where('type', 'like')
+                ->pluck('actor_id');
 
-        $handledIds = ProfileAction::query()
-            ->where('actor_id', $user->id)
-            ->whereIn('type', ['like', 'pop', 'decline'])
-            ->pluck('target_id');
+            $handledIds = ProfileAction::query()
+                ->where('actor_id', $user->id)
+                ->whereIn('type', ['like', 'pop', 'decline'])
+                ->pluck('target_id');
 
-        $profiles = User::query()
-            ->with(['photos', 'interests'])
-            ->whereIn('id', $likedIds)
-            ->whereNotIn('id', $handledIds)
-            ->get();
+            $profiles = User::query()
+                ->with(['photos', 'interests'])
+                ->whereIn('id', $likedIds)
+                ->whereNotIn('id', $handledIds)
+                ->get();
 
-        return response()->json(
-            $profiles->map(
-                fn (User $profile) => $this->profilePayload($profile, $user)
-            )
-        );
+            return response()->json(
+                $profiles->map(
+                    fn (User $profile) => $this->profilePayload($profile, $user)
+                )
+            );
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.likedMe error', [
+                'user_id' => $request->user('sanctum')?->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la récupération des likes.'], 500);
+        }
     }
 
     public function show(Request $request, User $user)
     {
-        return response()->json($this->profilePayload($user->load(['photos', 'interests']), $request->user('sanctum')));
+        try {
+            return response()->json($this->profilePayload($user->load(['photos', 'interests']), $request->user('sanctum')));
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.show error', [
+                'profile_id' => $user->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la récupération du profil.'], 500);
+        }
     }
 
     public function uploadPhoto(Request $request)
     {
-        $data = $request->validate([
-            'photo' => ['required', 'image', 'max:5120'],
-        ]);
+        try {
+            $data = $request->validate([
+                'photo' => ['required', 'image', 'max:5120'],
+            ]);
 
-        $path = $data['photo']->store('profile-photos', 'public');
-        $photo = ProfilePhoto::query()->create([
-            'user_id' => $request->user('sanctum')->id,
-            'path' => 'storage/' . $path,
-            'url' => asset($path),
-            'position' => ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->count(),
-            'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->exists(),
-        ]);
+            $path = $data['photo']->store('profile-photos', 'public');
+            $photo = ProfilePhoto::query()->create([
+                'user_id' => $request->user('sanctum')->id,
+                'path' => 'storage/' . $path,
+                'url' => asset($path),
+                'position' => ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->count(),
+                'is_primary' => ! ProfilePhoto::query()->where('user_id', $request->user('sanctum')->id)->exists(),
+            ]);
 
-        return response()->json(['url' => $photo->path], 201);
+            return response()->json(['url' => $photo->path], 201);
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.uploadPhoto error', [
+                'user_id' => $request->user('sanctum')?->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de l\'upload de la photo.'], 500);
+        }
     }
 
     public function deletePhoto(Request $request, ProfilePhoto $photo)
     {
-        $user = $request->user('sanctum');
+        try {
+            $user = $request->user('sanctum');
 
-        if ($photo->user_id !== $user->id) {
-            return response()->json(['message' => 'Photo introuvable.'], 404);
+            if ($photo->user_id !== $user->id) {
+                return response()->json(['message' => 'Photo introuvable.'], 404);
+            }
+
+            $storagePath = str_replace('storage/', '', $photo->path);
+
+            if (Storage::disk('public')->exists($storagePath)) {
+                Storage::disk('public')->delete($storagePath);
+            }
+
+            $photo->delete();
+
+            $remainingPhotos = $user->photos()->orderBy('position')->get();
+
+            if ($remainingPhotos->count() && ! $remainingPhotos->where('is_primary', true)->count()) {
+                $remainingPhotos->first()->update(['is_primary' => true]);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            logger()->error('ProfileController.deletePhoto error', [
+                'user_id' => $request->user('sanctum')?->id,
+                'photo_id' => $photo->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur lors de la suppression de la photo.'], 500);
         }
-
-        $storagePath = str_replace('storage/', '', $photo->path);
-
-        if (Storage::disk('public')->exists($storagePath)) {
-            Storage::disk('public')->delete($storagePath);
-        }
-
-        $photo->delete();
-
-        $remainingPhotos = $user->photos()->orderBy('position')->get();
-
-        if ($remainingPhotos->count() && ! $remainingPhotos->where('is_primary', true)->count()) {
-            $remainingPhotos->first()->update(['is_primary' => true]);
-        }
-
-        return response()->json(['success' => true]);
     }
 
     private function profilePayload(User $profile, ?User $viewer = null): array

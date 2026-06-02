@@ -55,6 +55,10 @@ class StoryController extends Controller
                 201,
             );
         } catch (\Throwable $e) {
+            logger()->error('storeAction failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -80,6 +84,10 @@ class StoryController extends Controller
 
             return response()->json(['success' => true]);
         } catch (\Throwable $e) {
+            logger()->error('destroy failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Impossible de supprimer le media de story.', 'error' => $e->getMessage()], 500);
         }
     }

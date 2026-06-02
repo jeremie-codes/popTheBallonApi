@@ -72,46 +72,62 @@ class ConversationController extends Controller
 
     public function storeMessage(Request $request, Conversation $conversation)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
-            return response()->json(['message' => 'Conversation introuvable.'], 404);
+            if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
+                return response()->json(['message' => 'Conversation introuvable.'], 404);
+            }
+
+            $data = $request->validate([
+                'body' => ['required', 'string', 'max:5000'],
+            ]);
+
+            $message = $conversation->messages()->create([
+                'sender_id' => $user->id,
+                'body' => $data['body'],
+            ]);
+
+            $conversation->forceFill(['last_message_at' => now()])->save();
+
+            return response()->json([
+                'id' => (string) $message->id,
+                'text' => $message->body,
+                'time' => $message->created_at->format('H:i'),
+                'mine' => true,
+                'read' => false,
+            ], 201);
+        } catch (\Throwable $e) {
+            logger()->error('storeMessageAction failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
-
-        $data = $request->validate([
-            'body' => ['required', 'string', 'max:5000'],
-        ]);
-
-        $message = $conversation->messages()->create([
-            'sender_id' => $user->id,
-            'body' => $data['body'],
-        ]);
-
-        $conversation->forceFill(['last_message_at' => now()])->save();
-
-        return response()->json([
-            'id' => (string) $message->id,
-            'text' => $message->body,
-            'time' => $message->created_at->format('H:i'),
-            'mine' => true,
-            'read' => false,
-        ], 201);
     }
 
     public function markAsRead(Request $request, Conversation $conversation)
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
-            return response()->json(['message' => 'Conversation introuvable.'], 404);
+            if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
+                return response()->json(['message' => 'Conversation introuvable.'], 404);
+            }
+
+            $conversation->messages()
+                ->where('sender_id', '<>', $user->id)
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            return response()->json(['success' => true]);
+        } catch (\Throwable $e) {
+            logger()->error('markAsReadAction failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
-
-        $conversation->messages()
-            ->where('sender_id', '<>', $user->id)
-            ->whereNull('read_at')
-            ->update(['read_at' => now()]);
-
-        return response()->json(['success' => true]);
     }
 
     private function conversationPayload(Conversation $conversation, User $viewer, bool $withMessages = false): array

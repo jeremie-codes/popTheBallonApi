@@ -25,6 +25,10 @@ class SupportRequestController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Message envoye.'], 201);
         } catch (\Throwable $e) {
+            logger()->error('storeAction failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }

@@ -34,6 +34,10 @@ class AuthController extends Controller
 
             return response()->json($this->authResponse($user));
         } catch (\Throwable $e) {
+            logger()->error('AuthController.login error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -66,6 +70,10 @@ class AuthController extends Controller
             'message' => 'Token de notification mis a jour'
         ]);
         } catch (\Throwable $e) {
+            logger()->error('AuthController.savePushToken error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -116,6 +124,10 @@ class AuthController extends Controller
 
             return response()->json($this->authResponse($user), 201);
         } catch (\Throwable $e) {
+            logger()->error('AuthController.register error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -154,6 +166,10 @@ class AuthController extends Controller
                 'message' => 'Un lien de recuperation a ete envoye si le compte existe.',
             ]);
         } catch (\Throwable $e) {
+            logger()->error('AuthController.forgotPassword error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -177,6 +193,10 @@ class AuthController extends Controller
 
             return response()->json(['success' => true, 'message' => 'Mot de passe mis a jour.']);
         } catch (\Throwable $e) {
+            logger()->error('AuthController.resetPassword error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }

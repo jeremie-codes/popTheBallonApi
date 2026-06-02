@@ -35,6 +35,10 @@ class OtpController extends Controller
                 'debug_otp' => config('app.debug') ? $code : null,
             ]);
         } catch (\Throwable $e) {
+            logger()->error('OtpController.generateLogin error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
@@ -92,6 +96,10 @@ class OtpController extends Controller
                 ],
             ]);
         } catch (\Throwable $e) {
+            logger()->error('OtpController.login error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
