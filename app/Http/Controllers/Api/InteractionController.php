@@ -13,40 +13,38 @@ use Illuminate\Http\Request;
 
 class InteractionController extends Controller
 {
-    public function like(Request $request)
+    public function like(Request $request, ExpoNotificationService $expo)
     {
         try {
-            return $this->storeAction($request, 'like');
+            return $this->storeAction($request, 'like', $expo);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
-    public function pop(Request $request)
+    public function pop(Request $request, ExpoNotificationService $expo)
     {
         try {
-            return $this->storeAction($request, 'pop');
+            return $this->storeAction($request, 'pop', $expo);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
-    public function decline(Request $request)
+    public function decline(Request $request, ExpoNotificationService $expo)
     {
         try {
-            return $this->storeAction($request, 'decline');
+            return $this->storeAction($request, 'decline', $expo);
         } catch (\Throwable $e) {
             return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
-    private function storeAction(Request $request, string $type)
+    private function storeAction(Request $request, string $type, ExpoNotificationService $expo)
     {
         $data = $request->validate([
             'profile_id' => ['required', 'exists:users,id'],
         ]);
-
-        $expo = app(ExpoNotificationService::class);
 
         $actor = $request->user('sanctum');
         $targetId = (int) $data['profile_id'];
