@@ -34,6 +34,10 @@ class ExpoNotificationService
                     'timeout' => 5,
                 ]
             );
+
+            logger()->error('Expo push send done', [
+                'token' => $token,
+            ]);
         } catch (\Throwable $e) {
             // Ne pas faire échouer la requête principale — journaliser l'erreur
             logger()->error('Expo push send failed', [
