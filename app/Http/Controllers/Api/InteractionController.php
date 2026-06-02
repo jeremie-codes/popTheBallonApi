@@ -80,7 +80,7 @@ class InteractionController extends Controller
         if ($type === 'like') {
 
             logger()->error('Expo push store action like', [
-                'token' => $target->devices->first()->expo_token
+                'token' => $target->devices->first()
             ]);
 
             if ($targetLikedActor) {
