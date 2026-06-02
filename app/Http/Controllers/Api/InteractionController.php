@@ -56,7 +56,7 @@ class InteractionController extends Controller
         }
 
         //$target = User::query()->with('devices')->find($targetId);
-        $target = $request->user()->with('devices')->find($targetId);
+        $target = $request->user()->with('devices');
 
         // Enregistre ou met à jour l'action
         ProfileAction::query()->updateOrCreate(
@@ -80,7 +80,7 @@ class InteractionController extends Controller
         if ($type === 'like') {
 
             logger()->error('Expo push store action like', [
-                'token' => $target->devices->first()
+                'token' => $target
             ]);
 
             if ($targetLikedActor) {
