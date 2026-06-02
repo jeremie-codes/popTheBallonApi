@@ -21,6 +21,9 @@ class ExpoNotificationService
     ): void {
 
         try {
+            logger()->error('Expo push send done before post', [
+                'token' => $token,
+            ]);
             $this->httpClient->post(
                 'https://exp.host/--/api/v2/push/send',
                 [
@@ -35,7 +38,7 @@ class ExpoNotificationService
                 ]
             );
 
-            logger()->error('Expo push send done', [
+            logger()->error('Expo push send done post', [
                 'token' => $token,
             ]);
         } catch (\Throwable $e) {
