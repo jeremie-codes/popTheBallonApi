@@ -55,7 +55,8 @@ class InteractionController extends Controller
             ], 422);
         }
 
-        $target = User::query()->with('devices')->find($targetId);
+        //$target = User::query()->with('devices')->find($targetId);
+        $target = $request->user('sanctum')->with('devices')->find($targetId);
 
         // Enregistre ou met à jour l'action
         ProfileAction::query()->updateOrCreate(
