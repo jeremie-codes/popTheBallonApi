@@ -40,7 +40,7 @@ class ExpoNotificationService
                 'status' => $response->getStatusCode(),
             ]);
         } catch (\Throwable $e) {
-            // Ne pas faire échouer la requête principale — journaliser l'erreur
+            // Ne pas faire échouer la requête principale — journaliser l'erreur et continuer
             logger()->error('Expo push send failed', [
                 'token' => substr($token, 0, 10) . '...',
                 'error' => $e->getMessage(),
