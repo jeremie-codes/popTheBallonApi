@@ -2,10 +2,17 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
+use GuzzleHttp\Client;
 
 class ExpoNotificationService
 {
+    private $httpClient;
+
+    public function __construct()
+    {
+        $this->httpClient = new Client();
+    }
+
     public function send(
         string $token,
         string $title,
@@ -13,15 +20,26 @@ class ExpoNotificationService
         array $data = []
     ): void {
 
-        Http::post(
-            'https://exp.host/--/api/v2/push/send',
-            [
-                'to' => $token,
-                'sound' => 'default',
-                'title' => $title,
-                'body' => $body,
-                'data' => $data,
-            ]
-        );
+        try {
+            $this->httpClient->post(
+                'https://exp.host/--/api/v2/push/send',
+                [
+                    'json' => [
+                        'to' => $token,
+                        'sound' => 'default',
+                        'title' => $title,
+                        'body' => $body,
+                        'data' => $data,
+                    ],
+                    'timeout' => 5,
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Ne pas faire échouer la requête principale — journaliser l'erreur
+            logger()->error('Expo push send failed', [
+                'token' => $token,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
