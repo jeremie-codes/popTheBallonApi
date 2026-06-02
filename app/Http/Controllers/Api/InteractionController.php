@@ -51,15 +51,15 @@ class InteractionController extends Controller
             ]);
 
             $actor = $request->user('sanctum');
-            // $targetId = (int) $data['profile_id']; // A remettre pour la prod
-            $targetId = (int) $request->user('sanctum')->id; // A retirer pour la prod
+            $targetId = (int) $data['profile_id']; // A remettre pour la prod
+            //$targetId = (int) $request->user('sanctum')->id; // A retirer pour la prod
 
             // Empêche les actions sur soi-même (utile pour les tests, à retirer en prod)
-            // if ($actor->id === $targetId) {
-            //     return response()->json([
-            //         'message' => 'Action impossible sur votre propre profil.'
-            //     ], 422);
-            // }
+            if ($actor->id === $targetId) {
+                return response()->json([
+                    'message' => 'Action impossible sur votre propre profil.'
+                ], 422); 
+            }
 
             $target = User::query()->with('devices')->find($targetId);
 

@@ -8,6 +8,7 @@ use App\Models\MatchModel;
 use App\Models\Message;
 use App\Models\ProfilePhoto;
 use App\Models\User;
+use App\Services\ExpoNotificationService;
 use Illuminate\Http\Request;
 
 class ConversationController extends Controller
@@ -70,7 +71,7 @@ class ConversationController extends Controller
         return response()->json($this->conversationPayload($conversation, $user, true));
     }
 
-    public function storeMessage(Request $request, Conversation $conversation)
+    public function storeMessage(Request $request, Conversation $conversation, ExpoNotificationService $expo)
     {
         try {
             $user = $request->user();
@@ -89,6 +90,21 @@ class ConversationController extends Controller
             ]);
 
             $conversation->forceFill(['last_message_at' => now()])->save();
+
+            $otherUser = $conversation->user_one_id === $user->id ? $conversation->userTwo : $conversation->userOne;
+            $otherUserTest = $conversation->user_one_id !== $user->id ? $conversation->userTwo : $conversation->userOne;
+
+            foreach ($otherUserTest->devices as $device) {
+                $expo->send(
+                    $device->expo_token,
+                    'PopTheBallon - Nouveau message',
+                    $user->displayName() . ' a envoyé un message.',
+                    [
+                        'type' => 'message',
+                        'user_id' => $user->id,
+                    ]
+                );
+            }
 
             return response()->json([
                 'id' => (string) $message->id,
