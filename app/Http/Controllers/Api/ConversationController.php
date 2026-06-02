@@ -146,6 +146,7 @@ class ConversationController extends Controller
             'message' => $last?->body ?? '',
             'time' => optional($last?->created_at ?? $conversation->created_at)->diffForHumans(),
             'unread' => $unread,
+            'lastMessageAt' => optional($conversation->last_message_at)->toDateTimeString(),
             'matched' => true,
         ];
 
