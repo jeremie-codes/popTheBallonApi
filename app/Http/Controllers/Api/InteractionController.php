@@ -18,7 +18,7 @@ class InteractionController extends Controller
         try {
             return $this->storeAction($request, 'like');
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
@@ -27,7 +27,7 @@ class InteractionController extends Controller
         try {
             return $this->storeAction($request, 'pop');
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
@@ -36,7 +36,7 @@ class InteractionController extends Controller
         try {
             return $this->storeAction($request, 'decline');
         } catch (\Throwable $e) {
-            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
         }
     }
 
