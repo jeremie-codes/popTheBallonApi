@@ -21,12 +21,6 @@ class ExpoNotificationService
     ): void {
 
         try {
-            logger()->info('Expo push sending', [
-                'token' => substr($token, 0, 10) . '...',
-                'title' => $title,
-                'data' => $data,
-            ]);
-
             $response = $this->httpClient->post(
                 'https://exp.host/--/api/v2/push/send',
                 [
