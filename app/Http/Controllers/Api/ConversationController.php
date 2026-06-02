@@ -92,13 +92,12 @@ class ConversationController extends Controller
             $conversation->forceFill(['last_message_at' => now()])->save();
 
             $otherUser = $conversation->user_one_id === $user->id ? $conversation->userTwo : $conversation->userOne;
-            $otherUserTest = $conversation->user_one_id !== $user->id ? $conversation->userTwo : $conversation->userOne;
 
-            foreach ($otherUserTest->devices as $device) {
+            foreach ($otherUser->devices as $device) {
                 $expo->send(
                     $device->expo_token,
                     'PopTheBallon - Nouveau message',
-                    $user->displayName() . ' a envoyé un message.',
+                    $user->displayName() . ': ' . $data['body'],
                     [
                         'type' => 'message',
                         'user_id' => $user->id,

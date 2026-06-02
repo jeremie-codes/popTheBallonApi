@@ -58,7 +58,7 @@ class InteractionController extends Controller
             if ($actor->id === $targetId) {
                 return response()->json([
                     'message' => 'Action impossible sur votre propre profil.'
-                ], 422); 
+                ], 422);
             }
 
             $target = User::query()->with('devices')->find($targetId);
@@ -97,7 +97,7 @@ class InteractionController extends Controller
                     foreach ($target->devices as $device) {
                         $expo->send(
                             $device->expo_token,
-                            '❤️ Demande de match confirmé',
+                            'PopTheBallon - Nouvelle notification',
                             $actor->displayName() . ' a accepté votre demande de match.',
                             [
                                 'type' => 'match',
@@ -119,7 +119,7 @@ class InteractionController extends Controller
                     foreach ($target->devices as $device) {
                         $expo->send(
                             $device->expo_token,
-                            'Nouvelle demande de match',
+                            'PopTheBallon - Nouvelle notification',
                             $actor->displayName() . ' aime votre profil, cliquez pour voir.',
                             [
                                 'type' => 'like',
@@ -145,7 +145,7 @@ class InteractionController extends Controller
                 foreach ($target->devices as $device) {
                     $expo->send(
                         $device->expo_token,
-                        'Demande match refusée',
+                        'PopTheBallon - Nouvelle notification',
                         $actor->displayName() . ' a refusé votre demande de match.',
                         [
                             'type' => 'decline',
