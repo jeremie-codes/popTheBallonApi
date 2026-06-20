@@ -71,7 +71,7 @@ Route::post('/payments/callback/{reference}', [MessageBundleController::class, '
     ->name('payments.callback');
 
 Route::get('/payments/approved/{reference}', [MessageBundleController::class, 'success'])
-    ->name('payments.approved');
+    ->name('payments.success');
 
 Route::get('/payments/canceled/{reference}', [MessageBundleController::class, 'cancel'])
     ->name('payments.canceled');
