@@ -158,7 +158,7 @@ class MessageBundleController extends Controller
                     amount: $bundle->price,
                     phone: $data['phone'],
                     currency: $data['currency'],
-                    callbackUrl: route('payment.callback', ['reference' => $reference]),
+                    callbackUrl: route('payments.callback', ['reference' => $reference]),
                     sender: $user->displayName()
                 );
             } else {
@@ -167,8 +167,8 @@ class MessageBundleController extends Controller
                     reference: $reference,
                     amount: $bundle->price,
                     currency: $data['currency'],
-                    callbackUrl: route('payment.callback', ['reference' => $reference]),
-                    approveUrl: route('payment.success', ['reference' => $reference]),
+                    callbackUrl: route('payments.callback', ['reference' => $reference]),
+                    approveUrl: route('payments.success', ['reference' => $reference]),
                     cancelUrl: route('payments.canceled', ['reference' => $reference]),
                     declineUrl: route('payments.declined',  ['reference' => $reference]),
                     sender: $user->displayName()
