@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 
 class FlexpaieService
 {
-    const BASE_URL = "https://corporateapi.flexpay.cd/api/rest/v1/paymentService";
+    const BASE_URL = "https://backend.flexpay.cd/api/rest/v1/paymentService";
     const BASE_URL_CHECK = "https://apicheck.flexpaie.com/api/rest/v1/check/";
 
     const SUCCESS = 0;
