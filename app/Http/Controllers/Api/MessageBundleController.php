@@ -8,6 +8,8 @@ use App\Models\MessageBundle;
 use App\Models\MessageBundleRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Services\ExpoNotificationService;
+use App\Services\FlexpaieService;
 
 class MessageBundleController extends Controller
 {
@@ -29,7 +31,7 @@ class MessageBundleController extends Controller
         );
     }
 
-    public function requestBundle(Request $request)
+    public function requestBundle(Request $request, ExpoNotificationService $expo)
     {
         try {
             $data = $request->validate([
@@ -39,6 +41,10 @@ class MessageBundleController extends Controller
 
             $requester = $request->user();
             $requested = User::query()->findOrFail($data['requested_user_id']);
+
+            $actor = $request->user('sanctum');
+            $targetId = (int) $data['requested_user_id'];
+            $target = User::query()->with('devices')->find($targetId);
 
             MessageBundleRequest::query()->create([
                 'requester_id' => $data['requester_id'] ?? $requester->id,
@@ -53,6 +59,19 @@ class MessageBundleController extends Controller
                 'profile_id' => $requester->id,
             ]);
 
+            foreach ($target->devices as $device) {
+                $expo->send(
+                    $device->expo_token,
+                    'PopTheBallon - Nouvelle notification',
+                    $actor->displayName() . ' aime votre profil, cliquez pour voir.',
+                    [
+                        'type' => 'like',
+                        'user_id' => $actor->id,
+                    ]
+                );
+
+            }
+
             return response()->json(['success' => true, 'message' => 'Demande de forfait envoyee.'], 201);
         } catch (\Throwable $e) {
             logger()->error('MessageBundleController.requestBundle error', [
@@ -63,7 +82,7 @@ class MessageBundleController extends Controller
         }
     }
 
-    public function purchaseBundle(MessageBundle $MessageBundle, Request $request)
+    public function purchaseBundle(MessageBundle $MessageBundle, Request $request, FlexpaieService $fxp)
     {
 
          try {
@@ -77,6 +96,8 @@ class MessageBundleController extends Controller
                 return response()->json(['message' => 'Forfait introuvable'], 404);
             }
 
+            //$fxp->purchase($user, $MessageBundle->price, $MessageBundle->currency);
+            
             // Logique d'achat du forfait pour l'utilisateur ciblé (à implémenter selon votre logique métier)
             // si profile_id est fourni, c'est une demande d'achat pour un autre utilisateur, sinon c'est pour soi-même
 
@@ -98,6 +119,7 @@ class MessageBundleController extends Controller
             return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
         }
     }
+
 
     private function currencySymbol(string $currency): string
     {

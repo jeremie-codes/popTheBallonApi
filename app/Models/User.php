@@ -4,15 +4,18 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Carbon;
+use Filament\Models\Contracts\HasName;
+use Filament\Panel;
 
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser, HasName
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -76,6 +79,11 @@ class User extends Authenticatable
         return $this->birth_date instanceof Carbon ? $this->birth_date->age : null;
     }
 
+    public function getFilamentName(): string
+    {
+        return trim($this->first_name . ' ' . $this->last_name);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -90,5 +98,10 @@ class User extends Authenticatable
             'last_seen_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
     }
 }
