@@ -23,7 +23,7 @@ class InteractionController extends Controller
         }
     }
 
-    public function pop(Request $request, ExpoNotificationService $expo)
+    public function pop(Request $request, ExpoNotificationService $expo) 
     {
         try {
             return $this->storeAction($request, 'pop', $expo);

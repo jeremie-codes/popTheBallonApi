@@ -61,6 +61,11 @@ class User extends Authenticatable implements FilamentUser, HasName
         return $this->hasMany(Story::class);
     }
 
+    public function messageCredit()
+    {
+        return $this->hasOne(MessageCredit::class);
+    }
+
     public function sentActions()
     {
         return $this->hasMany(ProfileAction::class, 'actor_id');

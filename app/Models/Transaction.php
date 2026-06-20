@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class Transaction extends Model
 {
     protected $fillable = [
-        'user_id',
-        'code',
         'reference',
+        'user_id',
+        'bundle_id',
         'amount',
         'currency',
         'phone',
@@ -21,5 +21,10 @@ class Transaction extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function bundle()
+    {
+        return $this->belongsTo(MessageBundle::class, 'bundle_id');
     }
 }

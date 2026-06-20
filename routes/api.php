@@ -59,6 +59,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('marketplace-items', [MarketplaceController::class, 'index']);
     Route::post('support-requests', [SupportRequestController::class, 'store']);
+
+
+    Route::post('/payments/initiate', [MessageBundleController::class, 'initiate']);
+    Route::get('/payments/status', [MessageBundleController::class, 'status']);
 });
 
 Route::get('profiles/{user}', [ProfileController::class, 'show']);
+
+Route::post('/payments/callback/{reference}', [MessageBundleController::class, 'callback'])
+    ->name('payments.callback');
+
+Route::get('/payments/approved/{reference}', [MessageBundleController::class, 'success'])
+    ->name('payments.approved');
+
+Route::get('/payments/canceled/{reference}', [MessageBundleController::class, 'cancel'])
+    ->name('payments.canceled');
+
+Route::get('/payments/declined/{reference}', [MessageBundleController::class, 'decline'])
+    ->name('payments.declined');

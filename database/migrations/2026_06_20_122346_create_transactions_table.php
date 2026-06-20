@@ -14,13 +14,13 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('code')->unique();
+            $table->foreignId('bundle_id')->constrained('message_bundles')->cascadeOnDelete();
             $table->string('reference')->unique();
             $table->decimal('amount', 10, 2)->default(0);
             $table->enum('currency', ['CDF', 'USD'])->default('USD');
             $table->string('phone')->nullable();
             $table->string('order_number')->nullable();
-            $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
+            $table->enum('status', ['pending', 'success', 'failed', 'cancelled'])->default('pending');
             $table->string('payment_method');
             $table->timestamps();
         });

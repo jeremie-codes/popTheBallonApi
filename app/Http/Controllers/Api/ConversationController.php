@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\MatchModel;
 use App\Models\Message;
+use App\Models\MessageCredit;
 use App\Models\ProfilePhoto;
 use App\Models\User;
 use App\Services\ExpoNotificationService;
@@ -74,10 +75,24 @@ class ConversationController extends Controller
     public function storeMessage(Request $request, Conversation $conversation, ExpoNotificationService $expo)
     {
         try {
-            $user = $request->user();
+            $user = $request->user('sanctum');
 
             if (! in_array($user->id, [$conversation->user_one_id, $conversation->user_two_id], true)) {
                 return response()->json(['message' => 'Conversation introuvable.'], 404);
+            }
+
+            $credit = MessageCredit::where(
+                'user_id',
+                $user->id
+            )->first();
+
+            if (
+                !$credit ||
+                $credit->available_messages <= 0
+            ) {
+                return response()->json([
+                    'message' => 'Vous n\'avez plus de messages disponibles.'
+                ],403);
             }
 
             $data = $request->validate([
@@ -105,6 +120,10 @@ class ConversationController extends Controller
                 );
             }
 
+            $credit->decrement(
+                'available_messages'
+            );
+            
             return response()->json([
                 'id' => (string) $message->id,
                 'text' => $message->body,
