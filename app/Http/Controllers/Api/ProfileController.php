@@ -20,6 +20,8 @@ class ProfileController extends Controller
 
             if (! $user) {
                 $profiles = User::query()
+                    ->where('is_visible', true)
+                    ->where('role', '!=', 'admin')
                     ->with(['photos', 'interests'])
                     ->latest()
                     ->get()

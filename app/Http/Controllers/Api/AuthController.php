@@ -24,6 +24,8 @@ class AuthController extends Controller
             $identifier = Str::lower($data['identifier']);
             $user = User::query()
                 ->whereRaw('LOWER(email) = ?', [$identifier])
+                ->where('is_visible', true)
+                ->where('role', '!=', 'admin')
                 ->orWhereRaw('LOWER(username) = ?', [$identifier])
                 ->orWhere('phone', $data['identifier'])
                 ->first();

@@ -25,6 +25,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'first_name',
         'last_name',
         'username',
+        'role',
         'phone',
         'email',
         'password',
@@ -36,6 +37,7 @@ class User extends Authenticatable implements FilamentUser, HasName
         'bio',
         'verified',
         'avatar',
+        'is_visible',
         'last_seen_at',
     ];
 
