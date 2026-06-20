@@ -11,14 +11,20 @@ class FlexpaieService
 
     const SUCCESS = 0;
 
-    public function mobilePayment($reference, $amount, $phone, $currency, $callbackUrl, $sender): array
-    {
+    public function mobilePayment(
+        $reference,
+        $amount,
+        $phone,
+        $currency,
+        $callbackUrl,
+        $sender
+    ): array {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
         ])->post(self::BASE_URL, [
             'merchant' => 'ORACLEZAPP',
-            'type' => "1",
+            'type' => '1',
             'reference' => $reference,
             'description' => "Don payé par $sender",
             'phone' => $phone,
@@ -27,7 +33,12 @@ class FlexpaieService
             'callback_url' => $callbackUrl,
         ]);
 
-        return $response->json();
+        logger()->info('FlexPay mobile', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+            'json' => $response->json(),
+        ]);
+        return $response->json() ?? [];
     }
 
     public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl, $sender): array
@@ -48,6 +59,11 @@ class FlexpaieService
             'decline_url' => $declineUrl,
         ]);
 
+        logger()->info('FlexPay mobile', [
+            'status' => $response->status(),
+            'body' => $response->body(),
+            'json' => $response->json(),
+        ]);
         return $response->json();
     }
 
