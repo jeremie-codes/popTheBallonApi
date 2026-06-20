@@ -35,4 +35,7 @@ return [
         ],
     ],
 
+    'flexpay' => [
+        'token' => env('FLEXPAY_KEY'),
+    ],
 ];
