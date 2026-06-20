@@ -35,10 +35,15 @@ class FlexpaieService
 
         logger()->info('FlexPay mobile', [
             'status' => $response->status(),
+            'headers' => $response->headers(),
             'body' => $response->body(),
             'json' => $response->json(),
         ]);
-        return $response->json() ?? [];
+        
+        return $response->json() ?? [
+            'code' => 1,
+            'message' => 'Réponse vide de FlexPay',
+        ];
     }
 
     public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl, $sender): array
@@ -59,12 +64,17 @@ class FlexpaieService
             'decline_url' => $declineUrl,
         ]);
 
-        logger()->info('FlexPay mobile', [
+        logger()->info('FlexPay card', [
             'status' => $response->status(),
+            'headers' => $response->headers(),
             'body' => $response->body(),
             'json' => $response->json(),
         ]);
-        return $response->json();
+        
+        return $response->json() ?? [
+            'code' => 1,
+            'message' => 'Réponse vide de FlexPay',
+        ];
     }
 
     public function getPaymentStatus(string $ordernumber): array
