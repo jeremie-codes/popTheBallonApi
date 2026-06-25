@@ -16,8 +16,7 @@ class FlexpaieService
         $amount,
         $phone,
         $currency,
-        $callbackUrl,
-        $sender
+        $callbackUrl
     ): array {
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.flexpay.token'),
@@ -26,11 +25,10 @@ class FlexpaieService
             'merchant' => 'ORACLEZAPP',
             'type' => '1',
             'reference' => $reference,
-            'description' => "Don payé par $sender",
             'phone' => $phone,
             'amount' => $amount,
             'currency' => $currency,
-            'callback_url' => $callbackUrl,
+            'callbackUrl' => $callbackUrl,
         ]);
 
         logger()->info('FlexPay mobile', [
@@ -39,25 +37,26 @@ class FlexpaieService
             'body' => $response->body(),
             'json' => $response->json(),
         ]);
-        
+
         return $response->json() ?? [
             'code' => 1,
             'message' => 'Réponse vide de FlexPay',
         ];
     }
 
-    public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl, $sender): array
+    public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.flexpay.token'),
+            // 'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
         ])->post(self::BASE_URL, [
+            'authorization' => 'Bearer ' . config('services.flexpay.token'),
             'merchant' => 'ORACLEZAPP',
             'reference' => $reference,
             'amount' => $amount,
             'currency' => $currency,
             'type' => "2",
-            'description' => "Don payé par $sender",
+            'description' => "Paiement d'abonnement de forfait messages",
             'callback_url' => $callbackUrl,
             'approve_url' => $approveUrl,
             'cancel_url' => $cancelUrl,
@@ -70,7 +69,7 @@ class FlexpaieService
             'body' => $response->body(),
             'json' => $response->json(),
         ]);
-        
+
         return $response->json() ?? [
             'code' => 1,
             'message' => 'Réponse vide de FlexPay',

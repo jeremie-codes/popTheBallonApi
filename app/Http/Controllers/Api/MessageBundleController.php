@@ -159,7 +159,6 @@ class MessageBundleController extends Controller
                     phone: $data['phone'],
                     currency: $data['currency'],
                     callbackUrl: route('payments.callback', ['reference' => $reference]),
-                    sender: $user->displayName()
                 );
             } else {
 
@@ -171,7 +170,6 @@ class MessageBundleController extends Controller
                     approveUrl: route('payments.success', ['reference' => $reference]),
                     cancelUrl: route('payments.canceled', ['reference' => $reference]),
                     declineUrl: route('payments.declined',  ['reference' => $reference]),
-                    sender: $user->displayName()
                 );
             }
 
