@@ -119,7 +119,7 @@ class MessageBundleController extends Controller
 
                 $response = $flexpay->mobilePayment(
                     reference: $reference,
-                    amount: $bundle->price,
+                    amount: $data['currency'] === 'USD' ? $bundle->price : $bundle->equivalent,
                     phone: $data['phone'],
                     currency: $data['currency'],
                     callbackUrl: route('payments.callback', ['reference' => $reference, 'actor_id' => $user->id]), // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
@@ -128,10 +128,10 @@ class MessageBundleController extends Controller
 
                 $response = $flexpay->cardPayment(
                     reference: $reference,
-                    amount: $bundle->price,
+                    amount: $data['currency'] === 'USD' ? $bundle->price : $bundle->equivalent,
                     currency: $data['currency'],
                     callbackUrl: route('payments.callback', ['reference' => $reference, 'actor_id' => $user->id]), // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
-                    approveUrl: route('payments.success', ['reference' => $reference]),
+                    approveUrl: route('payments.success', ['reference' => $reference, 'actor_id' => $user->id]), // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
                     cancelUrl: route('payments.canceled', ['reference' => $reference]),
                     declineUrl: route('payments.declined',  ['reference' => $reference]),
                 );
@@ -141,7 +141,7 @@ class MessageBundleController extends Controller
                 'user_id' => $data['requester_id'] ?? $user->id,
                 'bundle_id' => $bundle->id,
                 'reference' => $reference,
-                'amount' => $bundle->price,
+                'amount' => $data['currency'] === 'USD' ? $bundle->price : $bundle->equivalent,
                 'currency' => $data['currency'],
                 'phone' => $data['phone'] ?? null,
                 'payment_method' => $data['method'],
