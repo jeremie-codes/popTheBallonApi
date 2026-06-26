@@ -29,8 +29,8 @@ class MessageBundleController extends Controller
                     'id' => (string) $bundle->id,
                     'title' => $bundle->title,
                     'messages' => $bundle->messages,
-                    'price' => $bundle->price,
-                    'equivalent' => $bundle->equivalent,
+                    'price' => rtrim(rtrim((string) $bundle->price, '0'), '.'),
+                    'equivalent' => rtrim(rtrim((string) $bundle->equivalent, '0'), '.'),
                     'popular' => (bool) $bundle->popular,
                     'description' => $bundle->description ?? '',
                 ])
