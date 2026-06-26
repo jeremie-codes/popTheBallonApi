@@ -14,7 +14,6 @@ use App\Services\ExpoNotificationService;
 use App\Services\FlexpaieService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-
 use function Pest\Laravel\json;
 
 class MessageBundleController extends Controller
@@ -49,8 +48,8 @@ class MessageBundleController extends Controller
             $requested = User::query()->findOrFail($data['requested_user_id']);
 
             $actor = $request->user('sanctum');
-            $targetId = (int) $data['requested_user_id'];
-            $target = User::query()->with('devices')->find($targetId);
+            $userId = (int) $data['requested_user_id'];
+            $target = User::query()->with('devices')->find($userId);
 
             MessageBundleRequest::query()->create([
                 'requester_id' => $data['requester_id'] ?? $requester->id,
@@ -69,9 +68,9 @@ class MessageBundleController extends Controller
                 $expo->send(
                     $device->expo_token,
                     'PopTheBallon - Nouvelle notification',
-                    $actor->displayName() . ' aime votre profil, cliquez pour voir.',
+                    $actor->displayName() . ' vous demande de lui acheter un forfait messages pour discuter.',
                     [
-                        'type' => 'like',
+                        'type' => 'bundle_request',
                         'user_id' => $actor->id,
                     ]
                 );
@@ -87,44 +86,6 @@ class MessageBundleController extends Controller
         }
     }
 
-    public function purchaseBundle(MessageBundle $MessageBundle, Request $request, FlexpaieService $fxp)
-    {
-
-        try {
-            $data = $request->validate([
-                'profile_id' => ['nullable', 'exists:users,id'],
-            ]);
-
-            $user = $request->user('sanctum');
-
-            if (!$MessageBundle) {
-                return response()->json(['message' => 'Forfait introuvable'], 404);
-            }
-
-            //$fxp->purchase($user, $MessageBundle->price, $MessageBundle->currency);
-
-            // Logique d'achat du forfait pour l'utilisateur ciblé (à implémenter selon votre logique métier)
-            // si profile_id est fourni, c'est une demande d'achat pour un autre utilisateur, sinon c'est pour soi-même
-
-            AppNotification::query()->create([
-                'user_id' => $data['profile_id'] ?? $user->id,
-                'title' => 'Demande de forfait',
-                'message' => $data['profile_id'] ? $user->displayName() . ' vous a acheté un forfait messages ' . $MessageBundle->title . ' pour discuter avec lui.'
-                    : 'Vous avez acheté un forfait messages ' . $MessageBundle->title . ' pour discuter avec vos matchs.',
-                'kind' => 'bundle_purchase',
-                'profile_id' => $user->id,
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Demande de forfait envoyee.'], 201);
-        } catch (\Throwable $e) {
-            logger()->error('MessageBundleController.purchaseBundle error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
-        }
-    }
-
     private function currencySymbol(string $currency): string
     {
         return strtoupper($currency) === 'USD' ? '$' : $currency;
@@ -132,11 +93,12 @@ class MessageBundleController extends Controller
 
     public function initiate(
         Request $request,
-        FlexpaieService $flexpay
+        FlexpaieService $flexpay,
     ) {
         try {
             $rules = [
                 'user_id' => ['required', 'exists:users,id'],
+                'requester_id' => ['nullable', 'exists:users,id'],
                 'bundle_id' => ['required', 'exists:message_bundles,id'],
                 'currency' => ['required', 'in:USD,CDF'],
                 'method' => ['required', 'in:mobile,card'],
@@ -149,6 +111,7 @@ class MessageBundleController extends Controller
             $data = $request->validate($rules);
             $user = User::findOrFail($data['user_id']);
             $bundle = MessageBundle::findOrFail($data['bundle_id']);
+
             $reference = 'MB-' . uniqid();
 
             if ($data['method'] === 'mobile') {
@@ -158,7 +121,7 @@ class MessageBundleController extends Controller
                     amount: $bundle->price,
                     phone: $data['phone'],
                     currency: $data['currency'],
-                    callbackUrl: route('payments.callback', ['reference' => $reference]),
+                    callbackUrl: route('payments.callback', ['reference' => $reference, 'actor_id' => $user->id]), // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
                 );
             } else {
 
@@ -166,7 +129,7 @@ class MessageBundleController extends Controller
                     reference: $reference,
                     amount: $bundle->price,
                     currency: $data['currency'],
-                    callbackUrl: route('payments.callback', ['reference' => $reference]),
+                    callbackUrl: route('payments.callback', ['reference' => $reference, 'actor_id' => $user->id]), // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
                     approveUrl: route('payments.success', ['reference' => $reference]),
                     cancelUrl: route('payments.canceled', ['reference' => $reference]),
                     declineUrl: route('payments.declined',  ['reference' => $reference]),
@@ -174,7 +137,7 @@ class MessageBundleController extends Controller
             }
 
             Transaction::create([
-                'user_id' => $user->id,
+                'user_id' => $data['requester_id'] ?? $user->id,
                 'bundle_id' => $bundle->id,
                 'reference' => $reference,
                 'amount' => $bundle->price,
@@ -183,6 +146,7 @@ class MessageBundleController extends Controller
                 'payment_method' => $data['method'],
                 'order_number' => $response['orderNumber'] ?? null,
                 'status' => 'pending',
+                'description' => $data['requester_id'] ? 'Forfait acheté par ' . $user->displayName() : null,
             ]);
 
             return response()->json([
@@ -208,13 +172,16 @@ class MessageBundleController extends Controller
 
     public function status(
         Request $request,
-        FlexpaieService $flexpay
+        FlexpaieService $flexpay,
+        ExpoNotificationService $expo
     ) {
         try {
             $data = $request->validate([
-                'order_number' => ['required']
+                'order_number' => ['required'],
+                'actor_id' => ['required', 'exists:users,id']
             ]);
 
+            $actor_id = $data['actor_id']; // on pase actor_id pour pouvoir identifier le user qui a effectue la transaction au cas ou il achete le forfait pour un autre profil
             $transaction = Transaction::where('order_number', $data['order_number'])->first();
             if (!$transaction) {
                 return response()->json([
@@ -238,7 +205,9 @@ class MessageBundleController extends Controller
                 case 0:
                     if ($transaction->status !== 'success') {
                         DB::transaction(function () use (
-                            $transaction
+                            $transaction,
+                            $expo,
+                            $actor_id
                         ) {
 
                             $transaction->update([
@@ -268,6 +237,79 @@ class MessageBundleController extends Controller
                                 'available_messages',
                                 $messages
                             );
+
+                            $actor = User::query()->findOrFail($actor_id) ?? null;
+                            $user = User::query()->findOrFail($transaction->user_id);
+                            $bundle = MessageBundle::query()->findOrFail($transaction->bundle_id);
+
+                            if ($user->id !== $actor->id) {
+                                AppNotification::query()->create([
+                                    'user_id' =>  $actor->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $user->id,
+                                ]);
+
+                                AppNotification::query()->create([
+                                    'user_id' =>  $user->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => $actor->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $actor->id,
+                                ]);
+
+                                $targets_actor = $actor->devices();
+                                $targets_user = $user->devices();
+
+                                foreach ($targets_actor as $device_actor) {
+                                    $expo->send(
+                                        $device_actor->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+
+                                foreach ($targets_user as $device_user) {
+                                    $expo->send(
+                                        $device_user->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        $user->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+                            }
+                            else {
+                                AppNotification::query()->create([
+                                    'user_id' =>  $user->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $user->id,
+                                ]);
+
+                                $targets = $user->devices();
+
+                                foreach ($targets as $device) {
+                                    $expo->send(
+                                        $device->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+                            }
+
                         });
                     }
                     break;
@@ -315,8 +357,12 @@ class MessageBundleController extends Controller
         }
     }
 
-    public function callback(Request $request, $reference)
-    {
+    public function callback(
+        Request $request,
+        $reference,
+        $actor_id,
+        ExpoNotificationService $expo
+    ) {
         try {
             $content = json_decode($request->getContent(), true);
             $transaction = Transaction::where('reference', $reference)->first();
@@ -339,7 +385,11 @@ class MessageBundleController extends Controller
                             break;
                         }
 
-                        DB::transaction(function () use ($transaction) {
+                        DB::transaction(function () use (
+                            $transaction,
+                            $expo,
+                            $actor_id
+                        ) {
 
                             $transaction->update([
                                 'status' => 'success'
@@ -368,6 +418,78 @@ class MessageBundleController extends Controller
                                 'available_messages',
                                 $messages
                             );
+
+                            $actor = User::query()->findOrFail($actor_id) ?? null;
+                            $user = User::query()->findOrFail($transaction->user_id);
+                            $bundle = MessageBundle::query()->findOrFail($transaction->bundle_id);
+
+                            if ($user->id !== $actor->id) {
+                                AppNotification::query()->create([
+                                    'user_id' =>  $actor->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $user->id,
+                                ]);
+
+                                AppNotification::query()->create([
+                                    'user_id' =>  $user->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => $actor->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $actor->id,
+                                ]);
+
+                                $targets_actor = $actor->devices();
+                                $targets_user = $user->devices();
+
+                                foreach ($targets_actor as $device_actor) {
+                                    $expo->send(
+                                        $device_actor->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+
+                                foreach ($targets_user as $device_user) {
+                                    $expo->send(
+                                        $device_user->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        $user->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+                            }
+                            else {
+                                AppNotification::query()->create([
+                                    'user_id' =>  $user->id,
+                                    'title' => 'Achat de forfait',
+                                    'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                                    'kind' => 'bundle_purchase',
+                                    'profile_id' => $user->id,
+                                ]);
+
+                                $targets = $user->devices();
+
+                                foreach ($targets as $device) {
+                                    $expo->send(
+                                        $device->expo_token,
+                                        'PopTheBallon - Nouvelle notification: ',
+                                        'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                                        [
+                                            'type' => 'bundle_purchase',
+                                            'user_id' => $user->id,
+                                        ]
+                                    );
+                                }
+                            }
                         });
 
                         break;
@@ -405,13 +527,16 @@ class MessageBundleController extends Controller
         }
     }
 
-    public function success($reference)
-    {
+    public function success(
+        $reference,
+        $actor_id
+    ) {
         $transaction = Transaction::where('reference', $reference)->first();
 
         if ($transaction && $transaction->status == 'pending') {
             DB::transaction(function () use (
-                $transaction
+                $transaction,
+                $actor_id
             ) {
                 $transaction->update([
                     'status' => 'success'
@@ -440,6 +565,78 @@ class MessageBundleController extends Controller
                     'available_messages',
                     $messages
                 );
+
+                $actor = User::query()->findOrFail($actor_id) ?? null;
+                $user = User::query()->findOrFail($transaction->user_id);
+                $bundle = MessageBundle::query()->findOrFail($transaction->bundle_id);
+
+                if ($user->id !== $actor->id) {
+                    AppNotification::query()->create([
+                        'user_id' =>  $actor->id,
+                        'title' => 'Achat de forfait',
+                        'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                        'kind' => 'bundle_purchase',
+                        'profile_id' => $user->id,
+                    ]);
+
+                    AppNotification::query()->create([
+                        'user_id' =>  $user->id,
+                        'title' => 'Achat de forfait',
+                        'message' => $actor->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                        'kind' => 'bundle_purchase',
+                        'profile_id' => $actor->id,
+                    ]);
+
+                    $targets_actor = $actor->devices();
+                    $targets_user = $user->devices();
+
+                    foreach ($targets_actor as $device_actor) {
+                        $expo->send(
+                            $device_actor->expo_token,
+                            'PopTheBallon - Nouvelle notification: ',
+                            'Vous avez acheté un forfait messages ' . $bundle->title . ' pour ' . $user->displayName() . '.',
+                            [
+                                'type' => 'bundle_purchase',
+                                'user_id' => $user->id,
+                            ]
+                        );
+                    }
+
+                    foreach ($targets_user as $device_user) {
+                        $expo->send(
+                            $device_user->expo_token,
+                            'PopTheBallon - Nouvelle notification: ',
+                            $user->displayName() . ' vous a acheté un forfait messages ' . $bundle->title . ' pour discuter avec lui.',
+                            [
+                                'type' => 'bundle_purchase',
+                                'user_id' => $user->id,
+                            ]
+                        );
+                    }
+                }
+                else {
+                    AppNotification::query()->create([
+                        'user_id' =>  $user->id,
+                        'title' => 'Achat de forfait',
+                        'message' => 'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                        'kind' => 'bundle_purchase',
+                        'profile_id' => $user->id,
+                    ]);
+
+                    $targets = $user->devices();
+
+                    foreach ($targets as $device) {
+                        $expo->send(
+                            $device->expo_token,
+                            'PopTheBallon - Nouvelle notification: ',
+                            'Vous avez acheté un forfait messages ' . $bundle->title . ' pour discuter avec vos matchs.',
+                            [
+                                'type' => 'bundle_purchase',
+                                'user_id' => $user->id,
+                            ]
+                        );
+                    }
+                }
             });
             return response()->json([
                 'status' => 'success',
