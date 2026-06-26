@@ -147,7 +147,7 @@ class MessageBundleController extends Controller
                 'payment_method' => $data['method'],
                 'order_number' => $response['orderNumber'] ?? null,
                 'status' => 'pending',
-                'description' => $data['requester_id'] ? 'Forfait acheté par ' . $user->displayName() : null,
+                'description' => !empty($data['requester_id']) ? 'Forfait acheté par ' . $user->displayName() : null,
             ]);
 
             return response()->json([
