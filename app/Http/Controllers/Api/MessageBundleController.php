@@ -30,7 +30,7 @@ class MessageBundleController extends Controller
                     'title' => $bundle->title,
                     'messages' => $bundle->messages,
                     'price' => rtrim(rtrim((string) $bundle->price, '0'), '.') . ' ' . $this->currencySymbol($bundle->currency),
-                    'equivalent' => rtrim(rtrim((string) $bundle->price, '0'), '.') . ' ' . $this->currencySymbol($bundle->currency == 'USD' ? 'USD' : 'CDF'),
+                    'equivalent' => rtrim(rtrim((string) $bundle->equivalent, '0'), '.') . ' ' . $this->currencySymbol('CDF'),
                     'popular' => (bool) $bundle->popular,
                     'description' => $bundle->description ?? '',
                 ])
