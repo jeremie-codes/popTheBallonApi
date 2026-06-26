@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MessageBundle extends Model
 {
-    protected $fillable = ['title', 'messages', 'price', 'currency', 'description', 'popular', 'active'];
+    protected $fillable = ['title', 'messages', 'price', 'equivalent', 'currency', 'description', 'popular', 'active'];
 
     protected function casts(): array
     {

@@ -26,6 +26,9 @@ class MessageBundlesTable
                     ->sortable(),
                 TextColumn::make('currency')
                     ->searchable(),
+                    TextColumn::make('equivalent')
+                        ->money()
+                        ->sortable(),
                 IconColumn::make('popular')
                     ->boolean(),
                 IconColumn::make('active')

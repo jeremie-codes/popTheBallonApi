@@ -18,8 +18,10 @@ class MessageBundleInfolist
                 TextEntry::make('price')
                     ->money(),
                 TextEntry::make('currency'),
+                TextEntry::make('equivalent')
+                        ->money(),
                 TextEntry::make('description')
-                    ->placeholder('-')
+                    ->placeholder('---')
                     ->columnSpanFull(),
                 IconEntry::make('popular')
                     ->boolean(),

@@ -22,9 +22,10 @@ class MessageBundleForm
                     ->required()
                     ->numeric()
                     ->prefix('$'),
-                TextInput::make('currency')
+                TextInput::make('equivalent')
                     ->required()
-                    ->default('USD'),
+                    ->numeric()
+                    ->prefix('CDF'),
                 Textarea::make('description')
                     ->default(null)
                     ->columnSpanFull(),
