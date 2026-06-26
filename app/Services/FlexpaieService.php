@@ -47,7 +47,7 @@ class FlexpaieService
     public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl): array
     {
         $response = Http::withHeaders([
-            // 'Authorization' => 'Bearer ' . config('services.flexpay.token'),
+            'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
         ])->post(self::BASE_URL, [
             'authorization' => 'Bearer ' . config('services.flexpay.token'),
