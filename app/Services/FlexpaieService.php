@@ -36,6 +36,16 @@ class FlexpaieService
             'headers' => $response->headers(),
             'body' => $response->body(),
             'json' => $response->json(),
+            'params' => [
+                'authorization' => 'Bearer ' . config('services.flexpay.token'),
+                'merchant' => 'ORACLEZAPP',
+                'reference' => $reference,
+                'amount' => $amount,
+                'currency' => $currency,
+                'type' => "2",
+                'description' => "Paiement d'abonnement de forfait messages",
+                'callback_url' => $callbackUrl
+            ]
         ]);
 
         return $response->json() ?? [
@@ -47,7 +57,7 @@ class FlexpaieService
     public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl): array
     {
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.flexpay.token'),
+            //'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
         ])->post(self::BASE_URL, [
             'authorization' => 'Bearer ' . config('services.flexpay.token'),
@@ -60,7 +70,7 @@ class FlexpaieService
             'callback_url' => $callbackUrl,
             'approve_url' => $approveUrl,
             'cancel_url' => $cancelUrl,
-            'decline_url' => $declineUrl,
+            'decline_url' => $declineUrl
         ]);
 
         logger()->info('FlexPay card', [
@@ -68,6 +78,19 @@ class FlexpaieService
             'headers' => $response->headers(),
             'body' => $response->body(),
             'json' => $response->json(),
+            'params' => [
+                'authorization' => 'Bearer ' . config('services.flexpay.token'),
+                'merchant' => 'ORACLEZAPP',
+                'reference' => $reference,
+                'amount' => $amount,
+                'currency' => $currency,
+                'type' => "2",
+                'description' => "Paiement d'abonnement de forfait messages",
+                'callback_url' => $callbackUrl,
+                'approve_url' => $approveUrl,
+                'cancel_url' => $cancelUrl,
+                'decline_url' => $declineUrl,
+            ]
         ]);
 
         return $response->json() ?? [
