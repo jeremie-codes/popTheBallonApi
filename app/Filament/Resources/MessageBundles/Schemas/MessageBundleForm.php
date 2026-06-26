@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\MessageBundles\Schemas;
 
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
@@ -22,9 +23,13 @@ class MessageBundleForm
                     ->required()
                     ->numeric()
                     ->prefix('$'),
-                TextInput::make('currency')
+                /*Select::make('currency')
+                    ->options([
+                        'USD' => 'USD',
+                        'CDF' => 'CDF',
+                    ])
                     ->required()
-                    ->default('USD'),
+                    ->default('USD'),*/
                 TextInput::make('equivalent')
                     ->required()
                     ->numeric()

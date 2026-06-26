@@ -26,12 +26,13 @@ class MessageBundlesTable
                     ->sortable(),
                 TextColumn::make('currency')
                     ->searchable(),
-                    TextColumn::make('equivalent')
-                        ->prefix('CDF')
+                TextColumn::make('equivalent')
+                        ->suffix(' CDF')
                         ->sortable(),
                 IconColumn::make('popular')
                     ->boolean(),
                 IconColumn::make('active')
+                    ->default(true)
                     ->boolean(),
                 TextColumn::make('created_at')
                     ->dateTime()
