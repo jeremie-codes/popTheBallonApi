@@ -22,6 +22,9 @@ class MessageBundleForm
                     ->required()
                     ->numeric()
                     ->prefix('$'),
+                TextInput::make('currency')
+                    ->required()
+                    ->default('USD'),
                 TextInput::make('equivalent')
                     ->required()
                     ->numeric()

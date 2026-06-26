@@ -27,7 +27,7 @@ class MessageBundlesTable
                 TextColumn::make('currency')
                     ->searchable(),
                     TextColumn::make('equivalent')
-                        ->money()
+                        ->prefix('CDF')
                         ->sortable(),
                 IconColumn::make('popular')
                     ->boolean(),
