@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Http;
 
 class FlexpaieService
 {
-    const BASE_URL = "https://backend.flexpay.cd/api/rest/v1/paymentService";
+    const BASE_URL_CARD = "https://cardpayment.flexpay.cd/v1.1/pay";
+    const BASE_URL_MOBILE = "https://backend.flexpay.cd/api/rest/v1/paymentService";
     const BASE_URL_CHECK = "https://apicheck.flexpaie.com/api/rest/v1/check/";
 
     const SUCCESS = 0;
@@ -21,7 +22,7 @@ class FlexpaieService
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
-        ])->post(self::BASE_URL, [
+        ])->post(self::BASE_URL_MOBILE, [
             'merchant' => 'ORACLEZAPP',
             'type' => '1',
             'reference' => $reference,
@@ -35,17 +36,7 @@ class FlexpaieService
             'status' => $response->status(),
             'headers' => $response->headers(),
             'body' => $response->body(),
-            'json' => $response->json(),
-            'params' => [
-                'authorization' => 'Bearer ' . config('services.flexpay.token'),
-                'merchant' => 'ORACLEZAPP',
-                'reference' => $reference,
-                'amount' => $amount,
-                'currency' => $currency,
-                'type' => "2",
-                'description' => "Paiement d'abonnement de forfait messages",
-                'callback_url' => $callbackUrl
-            ]
+            'json' => $response->json()
         ]);
 
         return $response->json() ?? [
@@ -57,40 +48,25 @@ class FlexpaieService
     public function cardPayment($reference, $amount, $currency, $callbackUrl, $approveUrl, $cancelUrl, $declineUrl): array
     {
         $response = Http::withHeaders([
-            //'Authorization' => 'Bearer ' . config('services.flexpay.token'),
             'Content-Type' => 'application/json',
-        ])->post(self::BASE_URL, [
+        ])->post(self::BASE_URL_CARD, [
             'authorization' => 'Bearer ' . config('services.flexpay.token'),
             'merchant' => 'ORACLEZAPP',
             'reference' => $reference,
             'amount' => $amount,
             'currency' => $currency,
-            'type' => "2",
             'description' => "Paiement d'abonnement de forfait messages",
             'callback_url' => $callbackUrl,
             'approve_url' => $approveUrl,
             'cancel_url' => $cancelUrl,
-            'decline_url' => $declineUrl
+            'decline_url' => $declineUrl,
         ]);
 
         logger()->info('FlexPay card', [
             'status' => $response->status(),
             'headers' => $response->headers(),
             'body' => $response->body(),
-            'json' => $response->json(),
-            'params' => [
-                'authorization' => 'Bearer ' . config('services.flexpay.token'),
-                'merchant' => 'ORACLEZAPP',
-                'reference' => $reference,
-                'amount' => $amount,
-                'currency' => $currency,
-                'type' => "2",
-                'description' => "Paiement d'abonnement de forfait messages",
-                'callback_url' => $callbackUrl,
-                'approve_url' => $approveUrl,
-                'cancel_url' => $cancelUrl,
-                'decline_url' => $declineUrl,
-            ]
+            'json' => $response->json()
         ]);
 
         return $response->json() ?? [
