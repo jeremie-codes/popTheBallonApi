@@ -18,6 +18,7 @@ class Story extends Model
         return $this->belongsTo(User::class);
     }
 
+
     public function media()
     {
         return $this->hasMany(StoryMedia::class)->orderBy('position');

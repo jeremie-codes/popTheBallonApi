@@ -91,7 +91,7 @@ class ConversationController extends Controller
                 $credit->available_messages <= 0
             ) {
                 return response()->json([
-                    'message' => 'Vous n\'avez plus de messages disponibles.'
+                    'message' => 'Vous n\'avez pas de forfait messages disponibles.'
                 ],403);
             }
 
@@ -123,7 +123,7 @@ class ConversationController extends Controller
             $credit->decrement(
                 'available_messages'
             );
-            
+
             return response()->json([
                 'id' => (string) $message->id,
                 'text' => $message->body,

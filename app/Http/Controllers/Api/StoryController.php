@@ -13,13 +13,16 @@ class StoryController extends Controller
 {
     public function index(Request $request)
     {
+        $userId = $request->user('sanctum')?->id;
+
         return response()->json(
             $this->activeStories()
                 ->groupBy('user_id')
-                ->map(fn (Collection $stories) => $this->storyPayload(
+                ->map(fn(Collection $stories) => $this->storyPayload(
                     $stories,
-                    $request->user('sanctum')?->id === $stories->first()->user_id,
+                    $userId === $stories->first()->user_id,
                 ))
+                ->sortByDesc(fn($story) => $story['profileId'] === $userId)
                 ->values()
         );
     }
@@ -30,7 +33,7 @@ class StoryController extends Controller
             $this->activeStories()
                 ->where('user_id', $request->user()->id)
                 ->groupBy('user_id')
-                ->map(fn (Collection $stories) => $this->storyPayload($stories, true))
+                ->map(fn(Collection $stories) => $this->storyPayload($stories, true))
                 ->values()
         );
     }
@@ -46,7 +49,7 @@ class StoryController extends Controller
             ]);
             StoryMedia::query()->create([
                 'story_id' => $story->id,
-                'path' => 'storage/'.$path,
+                'path' => 'storage/' . $path,
                 'url' => Storage::disk('public')->url($path),
             ]);
 
@@ -107,7 +110,7 @@ class StoryController extends Controller
     {
         /** @var Story $latestStory */
         $latestStory = $stories->first();
-        $media = $stories->flatMap(fn (Story $story) => $story->media);
+        $media = $stories->flatMap(fn(Story $story) => $story->media);
         $avatar = optional($latestStory->user->photos->first())->path ?? null;
 
         return [
@@ -115,7 +118,7 @@ class StoryController extends Controller
             'name' => $isMine ? 'Ta story' : $latestStory->user->displayName(),
             'avatar' => $avatar ?? optional($media->first())->path ?? '',
             'profileId' => (string) $latestStory->user_id,
-            'images' => $media->map(fn (StoryMedia $storyMedia) => ['id' => (string) $storyMedia->id, 'name' => $storyMedia->path])->values(),
+            'images' => $media->map(fn(StoryMedia $storyMedia) => ['id' => (string) $storyMedia->id, 'name' => $storyMedia->path])->values(),
             'isMine' => $isMine,
         ];
     }
