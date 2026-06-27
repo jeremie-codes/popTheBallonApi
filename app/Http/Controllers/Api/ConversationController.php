@@ -91,6 +91,7 @@ class ConversationController extends Controller
                 $credit->available_messages <= 0
             ) {
                 return response()->json([
+                    'error' => 'no_available_messages',
                     'message' => 'Vous n\'avez pas de forfait messages disponibles, veuillez acheter un forfait.',
                 ],403);
             }
