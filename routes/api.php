@@ -52,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('notifications', [NotificationController::class, 'index']);
     Route::get('notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
     Route::get('message-bundles', [MessageBundleController::class, 'index']);
     Route::post('message-bundles/{messageBundle}/purchase', [MessageBundleController::class, 'purchaseBundle']);
