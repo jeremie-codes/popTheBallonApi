@@ -58,14 +58,19 @@ class AuthController extends Controller
                 return response()->json(['message' => 'Utilisateur non authentifie'], 401);
             }
 
+            UserDevice::where('user_id', $user->id)
+                ->where('platform', $request->platform)
+                ->where('expo_token', '!=', $request->token)
+                ->delete();
+
             UserDevice::updateOrCreate(
-            ['expo_token' => $request->token],
-            [
-                'platform' => $request->platform,
-                'user_id' => $user->id,
-                'last_used_at' => now(),
-            ]
-        );
+                ['expo_token' => $request->token],
+                [
+                    'user_id' => $user->id,
+                    'platform' => $request->platform,
+                    'last_used_at' => now(),
+                ]
+            );
 
         return response()->json([
             'success' => true,
@@ -130,7 +135,7 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['message' => 'Erreur interne', 'error' => $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur, ' . $e->getMessage(), 'error' => $e->getMessage()], 500);
         }
     }
 
