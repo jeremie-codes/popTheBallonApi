@@ -87,11 +87,6 @@ class MessageBundleController extends Controller
         }
     }
 
-    private function currencySymbol(string $currency): string
-    {
-        return strtoupper($currency) === 'USD' ? '$' : $currency;
-    }
-
     public function initiate(
         Request $request,
         FlexpaieService $flexpay,

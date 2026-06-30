@@ -229,24 +229,10 @@ class ProfileController extends Controller
                 ->exists()
             : false;
 
-        $likedYou = $viewer
+        $likedMe = $viewer
             ? ProfileAction::where('actor_id', $profile->id)
                 ->where('target_id', $viewer->id)
                 ->where('type', 'like')
-                ->exists()
-            : false;
-
-        $poped = $viewer
-            ? ProfileAction::where('actor_id', $viewer->id)
-                ->where('target_id', $profile->id)
-                ->where('type', 'pop')
-                ->exists()
-            : false;
-
-        $declined = $viewer
-            ? ProfileAction::where('actor_id', $viewer->id)
-                ->where('target_id', $profile->id)
-                ->where('type', 'decline')
                 ->exists()
             : false;
 
@@ -260,6 +246,20 @@ class ProfileController extends Controller
                     $query->where('user_one_id', $profile->id)
                         ->where('user_two_id', $viewer->id);
                 })
+                ->exists()
+            : false;
+
+        $poped = $viewer
+            ? ProfileAction::where('actor_id', $viewer->id)
+                ->where('target_id', $profile->id)
+                ->where('type', 'pop')
+                ->exists()
+            : false;
+
+        $popedMe = $viewer
+            ? ProfileAction::where('actor_id', $profile->id)
+                ->where('target_id', $viewer->id)
+                ->where('type', 'pop')
                 ->exists()
             : false;
 
@@ -281,10 +281,10 @@ class ProfileController extends Controller
             'avatar' => optional($profile->photos->first())->path ?? null,
             'interests' => $profile->interests->pluck('name')->values(),
             'liked' => $liked,
-            'likedYou' => $likedYou,
-            'declined' => $declined,
-            'poped' => $poped,
+            'likedMe' => $likedMe,
             'matched' => $matched,
+            'poped' => $poped,
+            'popedMe' => $popedMe,
             'lastSeen' => optional($profile->last_seen_at)->diffForHumans(),
         ];
     }

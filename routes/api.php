@@ -41,7 +41,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('profiles/liked-me', [ProfileController::class, 'likedMe']);
 
     Route::post('likes', [InteractionController::class, 'like']);
-    Route::post('declines-matches', [InteractionController::class, 'decline']);
+    Route::post('dismiss-matches', [InteractionController::class, 'decline']);
     Route::post('pops', [InteractionController::class, 'pop']);
 
     Route::get('matches', [ConversationController::class, 'matches']);

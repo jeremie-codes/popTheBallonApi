@@ -23,7 +23,7 @@ class InteractionController extends Controller
         }
     }
 
-    public function pop(Request $request, ExpoNotificationService $expo) 
+    public function pop(Request $request, ExpoNotificationService $expo)
     {
         try {
             return $this->storeAction($request, 'pop', $expo);
@@ -33,13 +33,35 @@ class InteractionController extends Controller
         }
     }
 
-    public function decline(Request $request, ExpoNotificationService $expo)
+    public function decline(Request $request)
     {
         try {
-            return $this->storeAction($request, 'decline', $expo);
+            $data = $request->validate([
+                'profile_id' => ['required', 'exists:users,id'],
+            ]);
+
+            $actor = $request->user('sanctum');
+            $targetId = (int) $data['profile_id'];
+
+            // On supprime simplement le like reçu
+            ProfileAction::query()
+                ->where('actor_id', $targetId)
+                ->where('target_id', $actor->id)
+                ->where('type', 'like')
+                ->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Demande refusée.',
+            ]);
         } catch (\Throwable $e) {
-            logger()->error('Decline match error ', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Erreur, ' . $e->getMessage()], 500);
+            logger()->error('Decline match error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Erreur interne.',
+            ], 500);
         }
     }
 
@@ -104,7 +126,6 @@ class InteractionController extends Controller
                                 'user_id' => $actor->id,
                             ]
                         );
-
                     }
                 } else {
 
@@ -126,35 +147,10 @@ class InteractionController extends Controller
                                 'user_id' => $actor->id,
                             ]
                         );
-
                     }
                 }
-
             }
 
-            if ($type === 'decline') {
-
-                AppNotification::query()->create([
-                    'user_id' => $targetId,
-                    'title' => '❤️ Demande refusée',
-                    'message' => $actor->displayName() . ' a refusé votre demande de match.',
-                    'kind' => 'decline',
-                    'profile_id' => $actor->id,
-                ]);
-
-                foreach ($target->devices as $device) {
-                    $expo->send(
-                        $device->expo_token,
-                        'PopTheBallon - Nouvelle notification',
-                        $actor->displayName() . ' a refusé votre demande de match.',
-                        [
-                            'type' => 'decline',
-                            'user_id' => $actor->id,
-                        ]
-                    );
-
-                }
-            }
 
             // Match uniquement si les deux ont liké
             $actorLikedTarget = ProfileAction::query()
