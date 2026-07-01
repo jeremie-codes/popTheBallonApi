@@ -18,26 +18,51 @@ class ProfileController extends Controller
         try {
             $user = $request->user('sanctum');
 
-            if (! $user) {
-                $profiles = User::query()
-                    ->where('is_visible', true)
-                    ->where('role', '!=', 'admin')
-                    ->with(['photos', 'interests'])
-                    ->latest()
-                    ->get()
-                    ->map(fn (User $profile) => $this->profilePayload($profile, $user));
-
-                return response()->json($profiles);
-            }
-
-            $profiles = User::query()
+            $query = User::query()
                 ->with(['photos', 'interests'])
                 ->where('is_visible', true)
                 ->where('role', '!=', 'admin')
-                ->whereKeyNot($user->id)
-                ->latest()
+                ->latest();
+
+            // Utilisateur connecté
+            if ($user) {
+
+                // Exclure son propre profil
+                $query->whereKeyNot($user->id);
+
+                // Profils déjà traités (like ou pop)
+                $handledProfiles = ProfileAction::query()
+                    ->where('actor_id', $user->id)
+                    ->whereIn('type', ['like', 'pop'])
+                    ->pluck('target_id');
+
+                if ($handledProfiles->isNotEmpty()) {
+                    $query->whereNotIn('id', $handledProfiles);
+                }
+
+                // Exclure également les matchs déjà créés
+                $matchedIds = MatchModel::query()
+                    ->where(function ($q) use ($user) {
+                        $q->where('user_one_id', $user->id)
+                            ->orWhere('user_two_id', $user->id);
+                    })
+                    ->get()
+                    ->flatMap(function ($match) use ($user) {
+                        return [
+                            $match->user_one_id == $user->id
+                                ? $match->user_two_id
+                                : $match->user_one_id,
+                        ];
+                    });
+
+                if ($matchedIds->isNotEmpty()) {
+                    $query->whereNotIn('id', $matchedIds);
+                }
+            }
+
+            $profiles = $query
                 ->get()
-                ->map(fn (User $profile) => $this->profilePayload($profile, $user));
+                ->map(fn(User $profile) => $this->profilePayload($profile, $user));
 
             return response()->json($profiles);
         } catch (\Throwable $e) {
@@ -45,7 +70,10 @@ class ProfileController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['message' => 'Erreur lors de la récupération des profils.'], 500);
+
+            return response()->json([
+                'message' => 'Erreur lors de la récupération des profils.'
+            ], 500);
         }
     }
 
@@ -119,7 +147,7 @@ class ProfileController extends Controller
 
             $handledIds = ProfileAction::query()
                 ->where('actor_id', $user->id)
-                ->whereIn('type', ['like', 'pop', 'decline'])
+                ->whereIn('type', ['like', 'pop'])
                 ->pluck('target_id');
 
             $profiles = User::query()
@@ -130,7 +158,7 @@ class ProfileController extends Controller
 
             return response()->json(
                 $profiles->map(
-                    fn (User $profile) => $this->profilePayload($profile, $user)
+                    fn(User $profile) => $this->profilePayload($profile, $user)
                 )
             );
         } catch (\Throwable $e) {
@@ -224,43 +252,43 @@ class ProfileController extends Controller
 
         $liked = $viewer
             ? ProfileAction::where('actor_id', $viewer->id)
-                ->where('target_id', $profile->id)
-                ->where('type', 'like')
-                ->exists()
+            ->where('target_id', $profile->id)
+            ->where('type', 'like')
+            ->exists()
             : false;
 
         $likedMe = $viewer
             ? ProfileAction::where('actor_id', $profile->id)
-                ->where('target_id', $viewer->id)
-                ->where('type', 'like')
-                ->exists()
+            ->where('target_id', $viewer->id)
+            ->where('type', 'like')
+            ->exists()
             : false;
 
         $matched = $viewer
             ? MatchModel::query()
-                ->where(function ($query) use ($viewer, $profile) {
-                    $query->where('user_one_id', $viewer->id)
-                        ->where('user_two_id', $profile->id);
-                })
-                ->orWhere(function ($query) use ($viewer, $profile) {
-                    $query->where('user_one_id', $profile->id)
-                        ->where('user_two_id', $viewer->id);
-                })
-                ->exists()
+            ->where(function ($query) use ($viewer, $profile) {
+                $query->where('user_one_id', $viewer->id)
+                    ->where('user_two_id', $profile->id);
+            })
+            ->orWhere(function ($query) use ($viewer, $profile) {
+                $query->where('user_one_id', $profile->id)
+                    ->where('user_two_id', $viewer->id);
+            })
+            ->exists()
             : false;
 
         $poped = $viewer
             ? ProfileAction::where('actor_id', $viewer->id)
-                ->where('target_id', $profile->id)
-                ->where('type', 'pop')
-                ->exists()
+            ->where('target_id', $profile->id)
+            ->where('type', 'pop')
+            ->exists()
             : false;
 
         $popedMe = $viewer
             ? ProfileAction::where('actor_id', $profile->id)
-                ->where('target_id', $viewer->id)
-                ->where('type', 'pop')
-                ->exists()
+            ->where('target_id', $viewer->id)
+            ->where('type', 'pop')
+            ->exists()
             : false;
 
         return [
@@ -273,7 +301,7 @@ class ProfileController extends Controller
             'intention' => $profile->intention ?? '',
             'verified' => (bool) $profile->verified,
             'distance' => '0 km',
-            'pictures' => $profile->photos->map(fn (ProfilePhoto $photo) => [
+            'pictures' => $profile->photos->map(fn(ProfilePhoto $photo) => [
                 'id' => (string) $photo->id,
                 'name' => $photo->path,
                 'isPrimary' => (bool) $photo->is_primary,
@@ -305,7 +333,7 @@ class ProfileController extends Controller
             'intention' => $user->intention,
             'bio' => $user->bio,
             'avatar' => optional($user->photos->first())->path ?? null,
-            'pictures' => $user->photos->map(fn ($photo) => ['id' => (string) $photo->id, 'name' => $photo->path])->values(),
+            'pictures' => $user->photos->map(fn($photo) => ['id' => (string) $photo->id, 'name' => $photo->path])->values(),
             'age' => $user->age(),
             'interests' => $user->interests->pluck('name')->values(),
         ];
