@@ -126,7 +126,7 @@ class StoryController extends Controller
 
         return [
             'id' => (string) $latestStory->user_id,
-            'name' => $isMine ? 'Ta story' : $latestStory->user->displayName(),
+            'name' => $isMine ? 'Ma story' : $latestStory->user->displayName(),
             'avatar' => $avatar ?? optional($media->first())->path ?? '',
             'profileId' => (string) $latestStory->user_id,
             'images' => $media->map(fn(StoryMedia $storyMedia) => ['id' => (string) $storyMedia->id, 'name' => $storyMedia->path])->values(),
